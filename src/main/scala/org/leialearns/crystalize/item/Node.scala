@@ -16,7 +16,7 @@ protected class Node(_parent: Option[Node], _item: Item) {
   }
 
   def toInnerString: String = {
-    (if (parent.isDefined) parent.toString else "") + item.toString
+    (if (parent.isDefined) parent.get.toInnerString else "") + item.toString
   }
 
   override def toString: String = {
