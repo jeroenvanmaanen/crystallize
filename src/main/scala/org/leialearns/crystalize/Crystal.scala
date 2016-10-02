@@ -6,19 +6,39 @@ import scala.collection.mutable
 
 object Crystal {
   private val last: AtomicLong = new AtomicLong(0)
-  private val map: mutable.Map[Location[_],History] = new mutable.HashMap[Location[_],History]()
   private val internalized: mutable.Map[Any,Any] = new mutable.HashMap[Any,Any]()
-  def put[T <: Any](location: Location[T], value: T): Unit = {
-    val time = last.incrementAndGet()
-    val history = map.getOrElse(location, new History)
-    if (!map.contains(location)) {
-      map.put(location, history)
+  var head: State[_] = new State(None, "head", 0, new Location(None, Unit.getClass), None)
+
+  def advance(newHead: State[_]): State[_] = {
+    if (newHead.previousStateOption == Some(head)) {
+      head = newHead
     }
-    history.add(time, value)
+    head
   }
-  def get[T <: Any](location: Location[T], time: Long): Option[T] = {
-    map.get(location) flatMap ((history) => history.get(time)) map location.cast
+
+  def put[T <: Any](location: Location[T], value: T): State[_] = {
+    val time = last.incrementAndGet()
+    val newHead = new State[T](Some(head), "Observed", time, location, Some(value))
+    advance(newHead)
   }
+
+  def remove(location: Location[_]): State[_] = {
+    val time = last.incrementAndGet()
+    val newHead = new State(Some(head), "Observed", time, location, None)
+    advance(newHead)
+  }
+
+  def get[T <: Any](location: Location[T], state: State[_]): Option[T] = {
+    state.get(location) match {
+      case Some(valueOption) => valueOption
+      case _ => None
+    }
+  }
+
+  def get[T <: Any](location: Location[T]): Option[T] = {
+    get(location, head)
+  }
+
   def internalize[T](value: T): T = {
     val result = internalized.getOrElse(value, value)
     if (!internalized.contains(value)) {
@@ -26,4 +46,6 @@ object Crystal {
     }
     value.getClass.cast(result)
   }
+
+  def getLast = last.get()
 }
