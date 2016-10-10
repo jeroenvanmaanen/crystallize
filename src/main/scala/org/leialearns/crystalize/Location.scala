@@ -1,6 +1,7 @@
 package org.leialearns.crystalize
 
-class Location[T](key: Any, _valueType: Class[T]) {
+abstract class Location[T](_key: Any, _valueType: Class[T]) {
+  val key = _key
   val valueType = _valueType
 
   override def equals(other: Any): Boolean = {
@@ -19,3 +20,6 @@ class Location[T](key: Any, _valueType: Class[T]) {
     valueOption map valueType.cast
   }
 }
+
+case class AssignedLocation[T](_key: Any, _valueType: Class[T]) extends Location[T](_key, _valueType)
+case class DerivedLocation[T](_key: Derived[T], _valueType: Class[T]) extends Location[T](_key, _valueType)
