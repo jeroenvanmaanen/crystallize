@@ -2,12 +2,14 @@ package org.leialearns.crystalize
 
 import java.util.concurrent.atomic.AtomicReference
 
+import grizzled.slf4j.Logging
+
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) {
+class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) extends Logging {
   def this(previousState: State[_], location: AssignedLocation[A], value: A) {
     this(Some(previousState), previousState.name, previousState.ordinal + 1, location, Some(value))
   }
@@ -32,11 +34,18 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _or
   def get[T](location: Location[T]): Future[T] = {
     location match {
       case DerivedLocation(key, _) =>
-        val future = key.derive(this)
-        future.onComplete(attempt => store(location.asInstanceOf[DerivedLocation[T]], attempt))
+        trace(s"Get derived location with key: $ordinal: $key")
+        val future = key.derive(location.asInstanceOf[DerivedLocation[T]], this)
+        future.onComplete(attempt => {
+          trace(s"Derived value for location with key: $ordinal: $key: $attempt")
+          store(location.asInstanceOf[DerivedLocation[T]], attempt)
+        })
         future
       case AssignedLocation(key, valueType) =>
-        model.get(location) flatMap ((valueOption) => valueOption map location.cast)
+        model.get(location) flatMap ((valueOption) => {
+          trace(s"Retrieved assigned location with key: $ordinal: $key: $valueOption")
+          valueOption map location.cast
+        })
     }
   }
 

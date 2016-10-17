@@ -1,10 +1,13 @@
 package org.leialearns.crystalize.item
 
+import grizzled.slf4j.Logging
+import org.leialearns.crystalize.LoggingConfiguration
 import org.scalatest.FunSuite
 
-class TestItems extends FunSuite {
+class TestItems extends FunSuite with LoggingConfiguration with Logging {
 
   test("Items") {
+    info("\n\nTest items")
     val actions = Category.getCategory("actions")
     assert(actions eq Category.getCategory("actions"))
     val responses = Category.getCategory("responses")

@@ -2,7 +2,7 @@ package org.leialearns.crystalize.item
 
 import org.leialearns.crystalize.Crystal
 
-protected class Node(_parent: Option[Node], _item: Item) {
+class Node(_parent: Option[Node], _item: Item) {
   val parent = _parent
   val item = _item
 
@@ -25,6 +25,10 @@ protected class Node(_parent: Option[Node], _item: Item) {
 }
 
 object Node {
+  def getNode(parentOption: Option[Node], item: Item): Node = {
+    Crystal.internalize(new Node(parentOption, item))
+  }
+
   def getNode(parent: Node, item: Item): Node = {
     Crystal.internalize(new Node(Some(parent), item))
   }

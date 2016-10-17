@@ -2,6 +2,7 @@ package org.leialearns.crystalize
 
 import java.util.concurrent.atomic.{AtomicReference, AtomicLong}
 
+import grizzled.slf4j.Logging
 import org.leialearns.crystalize.item.{Category, Item, Node}
 
 import scala.collection.mutable
@@ -9,7 +10,7 @@ import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-object Crystal {
+object Crystal extends Logging {
   private val last: AtomicLong = new AtomicLong(0)
   private val internalized: mutable.Map[Any,Any] = new mutable.HashMap[Any,Any]()
   val expectedItem = Item.getItem(Category.getCategory("expected"), ())
@@ -70,6 +71,7 @@ object Crystal {
       val value: T = tryUpdate(t.getOrElse(zero))
       val newState = parent.put(location, value)
       if (advance(newState)) {
+        newState.get(location) onSuccess { case newValue => debug(s"New value: ${newState.ordinal}: $location: $newValue") }
         promise.success(newState)
       } else {
         update(location, zero, tryUpdate)

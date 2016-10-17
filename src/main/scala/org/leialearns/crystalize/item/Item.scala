@@ -2,7 +2,7 @@ package org.leialearns.crystalize.item
 
 import org.leialearns.crystalize.Crystal
 
-protected class Item(_category: Category, _content: Any) {
+class Item(_category: Category, _content: Any) {
   val category = _category
   val content = _content
 
