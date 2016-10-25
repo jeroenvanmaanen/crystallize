@@ -3,13 +3,14 @@ package org.leialearns.crystalize
 import java.util.concurrent.atomic.AtomicReference
 
 import grizzled.slf4j.Logging
+import org.leialearns.crystalize.util.{OrderedKey, DumpCustom}
 
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) extends Logging {
+class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) extends Logging with DumpCustom {
   def this(previousState: State[_], location: AssignedLocation[A], value: A) {
     this(Some(previousState), previousState.name, previousState.ordinal + 1, location, Some(value))
   }
@@ -53,6 +54,15 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _or
     val oldDerived = derived.get()
     val newDerived = oldDerived + ((location, (0l, valueOption)))
     if (derived.compareAndSet(oldDerived, newDerived)) () else store(location, valueOption)
+  }
+
+  override def dumpAs: Iterable[_] = {
+    immutable.HashMap[OrderedKey,AnyRef]() +
+      (new OrderedKey("1", "type") -> "state") +
+      (new OrderedKey("2", "name") -> name) +
+      (new OrderedKey("3", "ordinal") -> name) +
+      (new OrderedKey("4", "model") -> model) +
+      (new OrderedKey("5", "derived") -> derived.get)
   }
 
   implicit def optionToFuture[T](valueOption: Option[T]): Future[T] = {

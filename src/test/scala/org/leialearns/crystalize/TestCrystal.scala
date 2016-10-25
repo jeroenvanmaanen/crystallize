@@ -4,6 +4,7 @@ import java.util.NoSuchElementException
 
 import org.leialearns.crystalize.item.{Node, Item, Category}
 import org.leialearns.crystalize.model.{ItemCounts, Observed, Extensible}
+import org.leialearns.crystalize.util.Dump
 import org.scalatest.{Matchers, FunSuite}
 import java.lang.Long
 
@@ -42,6 +43,10 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     expectNoValue(t1.get(leftRight))
     expectNoValue(t1a.get(leftRight))
     expectValue(100l, t2.get(leftRight))
+
+    for (line <- Dump.dump("", t2)) {
+      logger.debug(line)
+    }
   }
 
   test("Derived") {
@@ -70,6 +75,10 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     val t2 = Crystal.head.get()
     logger.debug(s"Time t2: ${t2.ordinal}")
     expectValue((), t2.get(justLeftExtensible))
+
+    for (line <- Dump.dump("", t2)) {
+      logger.debug(line)
+    }
   }
 
   def expectValue[T](expected: T, future: Future[T]): Unit = {

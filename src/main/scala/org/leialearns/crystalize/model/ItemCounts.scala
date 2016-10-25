@@ -1,10 +1,12 @@
 package org.leialearns.crystalize.model
 
+import org.leialearns.crystalize.util.DumpCustom
+
 import scala.collection.immutable
 
 import org.leialearns.crystalize.item.Item
 
-class ItemCounts(_map: immutable.HashMap[Item,Long], _total: Long) {
+class ItemCounts(_map: immutable.HashMap[Item,Long], _total: Long) extends DumpCustom {
   def this() = {
     this(new immutable.HashMap[Item,Long](), 0l)
   }
@@ -24,5 +26,11 @@ class ItemCounts(_map: immutable.HashMap[Item,Long], _total: Long) {
 
   override def toString = {
     s"[IC:${map.keySet.size}:$total]"
+  }
+
+  override def dumpAs: Iterable[_] = {
+    immutable.HashMap[String,AnyRef]() +
+      ("map" -> map) +
+      ("total" -> total)
   }
 }

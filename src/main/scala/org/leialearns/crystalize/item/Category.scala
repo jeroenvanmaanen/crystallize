@@ -2,7 +2,7 @@ package org.leialearns.crystalize.item
 
 import org.leialearns.crystalize.Crystal
 
-protected class Category(_name: String) {
+class Category(_name: String) {
   val name = _name
 
   override def hashCode(): Int = this.name.hashCode
