@@ -10,26 +10,46 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) extends Logging with DumpCustom {
+class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _crystal: Crystal, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) extends Logging with DumpCustom {
   def this(previousState: State[_], location: AssignedLocation[A], value: A) {
-    this(Some(previousState), previousState.name, previousState.ordinal + 1, location, Some(value))
+    this(Some(previousState), previousState.name, previousState.crystal, previousState.ordinal + 1, location, Some(value))
   }
 
   val previousStateOption = _previousStateOption
   val name = _name
+  val crystal = _crystal
   val ordinal = _ordinal
   val model: immutable.HashMap[Location[_],Option[Any]] = (_previousStateOption match {
     case Some(previousState) => previousState.model
     case _ => new immutable.HashMap[Location[_],Option[Any]]()
   }) + ((_location: Location[_], _valueOption: Option[Any]))
   var derived = new AtomicReference[immutable.HashMap[Location[_],(Long,Option[Any])]](new immutable.HashMap[Location[_],(Long,Option[Any])]())
+  val recompute: immutable.HashSet[Location[_]] = extendRecompute(_previousStateOption match {
+    case Some(previousState) => previousState.recompute
+    case _ => new immutable.HashSet[Location[_]]()
+  }, _location :: Nil)
+
+  def extendRecompute(oldRecompute: immutable.HashSet[Location[_]], locations: Seq[Location[_]]): immutable.HashSet[Location[_]] = {
+    val nonMembers = locations filter {case x => !oldRecompute.contains(x)}
+    val nextLocations = nonMembers flatMap {case nonMember => propagateRecompute(nonMember)}
+    val nextRecompute = oldRecompute ++ nextLocations
+    if (nextLocations.isEmpty) {
+      nextRecompute
+    } else {
+      extendRecompute(nextRecompute, nextLocations)
+    }
+  }
+
+  def propagateRecompute(location: Location[_]): Seq[Location[_]] = {
+    crystal.propagators flatMap ((propagator) => propagator.propagate(location, this))
+  }
 
   def put[T](location: AssignedLocation[T], value: T): State[T] = {
-    new State(Some(this), this._name, this._ordinal + 1, location, Some(value))
+    new State(Some(this), this._name, this.crystal, this._ordinal + 1, location, Some(value))
   }
 
   def remove(location: AssignedLocation[_]): State[_] = {
-    new State(Some(this), this._name, this._ordinal + 1, location, None)
+    new State(Some(this), this._name, this.crystal, this._ordinal + 1, location, None)
   }
 
   def get[T](location: Location[T]): Future[T] = {
@@ -62,7 +82,8 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _or
       (new OrderedKey("2", "name") -> name) +
       (new OrderedKey("3", "ordinal") -> name) +
       (new OrderedKey("4", "model") -> model) +
-      (new OrderedKey("5", "derived") -> derived.get)
+      (new OrderedKey("5", "derived") -> derived.get) +
+      (new OrderedKey("6", "recompute") -> recompute)
   }
 
   implicit def optionToFuture[T](valueOption: Option[T]): Future[T] = {

@@ -24,10 +24,6 @@ class Extensible(_node: Node) extends Derived[Unit] with Logging {
     future
   }
 
-  override def propagate(location: Location[_], state: State[_]): Seq[Location[_]] = Nil
-
-  override def anchors(location: DerivedLocation[Unit], state: State[_]): Seq[Location[_]] = location :: Nil
-
   override def hashCode(): Int = node.hashCode()
 
   override def equals(obj: scala.Any): Boolean = {

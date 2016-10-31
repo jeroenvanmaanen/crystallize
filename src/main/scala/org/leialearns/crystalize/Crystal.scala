@@ -10,11 +10,12 @@ import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-class Crystal extends Logging {
+class Crystal(_propagators: Seq[Propagator]) extends Logging {
   private val last: AtomicLong = new AtomicLong(0)
+  val propagators = _propagators
   val expectedItem = Item.getItem(Category.getCategory("expected"), ())
   val rootExpectedLocation = new AssignedLocation(Node.getNode(expectedItem), classOf[Boolean])
-  var head: AtomicReference[State[_]] = new AtomicReference[State[_]](new State(None, "head", 0, rootExpectedLocation, Some(true)))
+  var head: AtomicReference[State[_]] = new AtomicReference[State[_]](new State(None, "head", this, 0, rootExpectedLocation, Some(true)))
 
   def advance(newHead: State[_]): Boolean = {
     head.compareAndSet(newHead.previousStateOption.get, newHead)
@@ -23,14 +24,14 @@ class Crystal extends Logging {
   def put[T <: Any](location: AssignedLocation[T], value: T): State[_] = {
     update(parent => {
       val time = last.incrementAndGet()
-      new State[T](parent, "Observed", time, location, Some(value))
+      new State[T](parent, "Observed", this, time, location, Some(value))
     })
   }
 
   def remove(location: AssignedLocation[_]): State[_] = {
     update(parent => {
       val time = last.incrementAndGet()
-      new State(parent, "Observed", time, location, None)
+      new State(parent, "Observed", this, time, location, None)
     })
   }
 

@@ -3,7 +3,7 @@ package org.leialearns.crystalize
 import java.util.NoSuchElementException
 
 import org.leialearns.crystalize.item.{Node, Item, Category}
-import org.leialearns.crystalize.model.{ItemCounts, Observed, Extensible}
+import org.leialearns.crystalize.model.{ExtensiblePropagator, ItemCounts, Observed, Extensible}
 import org.leialearns.crystalize.util.Dump
 import org.scalatest.{Matchers, FunSuite}
 import java.lang.Long
@@ -24,7 +24,7 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     val justLeft = new AssignedLocation(justLeftNode, classOf[String])
     val leftRightNode = Node.getNode(justLeftNode, right)
     val leftRight = new AssignedLocation(leftRightNode, classOf[Long])
-    val crystal = new Crystal
+    val crystal = new Crystal(Nil)
     val t0 = crystal.head.get()
     expectNoValue(t0.get(justLeft))
     val t1 = crystal.put(justLeft, "hi")
@@ -63,7 +63,7 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     val leftRightNode = Node.getNode(justLeftNode, right)
     val leftRight = new AssignedLocation(leftRightNode, classOf[Long])
     val justLeftExtensible = Extensible.createExtensibleLocation(justLeftNode)
-    val crystal = new Crystal
+    val crystal = new Crystal(new ExtensiblePropagator() :: Nil)
     val t0 = crystal.head.get()
     logger.debug(s"Time t0: ${t0.ordinal}")
     expectNoValue(t0.get(justLeftExtensible))
