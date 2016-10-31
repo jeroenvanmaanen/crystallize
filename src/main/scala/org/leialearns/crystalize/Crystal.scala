@@ -10,9 +10,8 @@ import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-object Crystal extends Logging {
+class Crystal extends Logging {
   private val last: AtomicLong = new AtomicLong(0)
-  private val internalized: mutable.Map[Any,Any] = new mutable.HashMap[Any,Any]()
   val expectedItem = Item.getItem(Category.getCategory("expected"), ())
   val rootExpectedLocation = new AssignedLocation(Node.getNode(expectedItem), classOf[Boolean])
   var head: AtomicReference[State[_]] = new AtomicReference[State[_]](new State(None, "head", 0, rootExpectedLocation, Some(true)))
@@ -39,14 +38,6 @@ object Crystal extends Logging {
     head.get().get(location)
   }
 
-  def internalize[T](value: T): T = {
-    val result = internalized.getOrElse(value, value)
-    if (!internalized.contains(value)) {
-      internalized.put(value, value)
-    }
-    value.getClass.cast(result)
-  }
-
   def getLast = last.get()
 
   def nullToOption[T <: Any](value: T): Option[T] = {
@@ -66,7 +57,6 @@ object Crystal extends Logging {
 
   protected def update[T](location: AssignedLocation[T], zero: T, tryUpdate: (T => T), promise: Promise[State[_]]): Unit = {
     val parent = head.get()
-    val time = last.incrementAndGet()
     parent.get(location).onComplete((t) => {
       val value: T = tryUpdate(t.getOrElse(zero))
       val newState = parent.put(location, value)
@@ -84,5 +74,17 @@ object Crystal extends Logging {
       case Success(value) => Some(value)
       case Failure(t) => None
     }
+  }
+}
+
+object Crystal {
+  private val internalized: mutable.Map[Any,Any] = new mutable.HashMap[Any,Any]()
+
+  def internalize[T](value: T): T = {
+    val result = internalized.getOrElse(value, value)
+    if (!internalized.contains(value)) {
+      internalized.put(value, value)
+    }
+    value.getClass.cast(result)
   }
 }
