@@ -8,6 +8,7 @@ import org.leialearns.crystalize.util.{OrderedKey, DumpCustom}
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _crystal: Crystal, _ordinal: Long, _location: AssignedLocation[A], _valueOption: Option[A]) extends Logging with DumpCustom {
@@ -24,23 +25,37 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     case _ => new immutable.HashMap[Location[_],Option[Any]]()
   }) + ((_location: Location[_], _valueOption: Option[Any]))
   var derived = new AtomicReference[immutable.HashMap[Location[_],(Long,Option[Any])]](new immutable.HashMap[Location[_],(Long,Option[Any])]())
-  val recompute: immutable.HashSet[Location[_]] = extendRecompute(_previousStateOption match {
-    case Some(previousState) => previousState.recompute
-    case _ => new immutable.HashSet[Location[_]]()
+  val recompute: Map[Location[_],immutable.List[Location[_]]] = extendRecompute(previousStateOption match {
+    case Some(previousState) => previousState.cleanRecompute()
+    case _ => new immutable.HashMap[Location[_],immutable.List[Location[_]]]()
   }, _location :: Nil)
 
-  def extendRecompute(oldRecompute: immutable.HashSet[Location[_]], locations: Seq[Location[_]]): immutable.HashSet[Location[_]] = {
+  private def extendRecompute(oldRecompute: Map[Location[_],immutable.List[Location[_]]], locations: Seq[Location[_]]): Map[Location[_],immutable.List[Location[_]]] = {
     val nonMembers = locations filter {case x => !oldRecompute.contains(x)}
-    val nextLocations = nonMembers flatMap {case nonMember => propagateRecompute(nonMember)}
+    val nextLocations: Seq[(DerivedLocation[_],immutable.List[Location[_]])] = nonMembers flatMap {
+      case nonMember => for (x <- propagateRecompute(nonMember)) yield (x, addCause(nonMember, oldRecompute.get(x)))
+    }
     val nextRecompute = oldRecompute ++ nextLocations
     if (nextLocations.isEmpty) {
       nextRecompute
     } else {
-      extendRecompute(nextRecompute, nextLocations)
+      extendRecompute(nextRecompute, nextLocations map {case (x, y) => x})
     }
   }
 
-  def propagateRecompute(location: Location[_]): Seq[Location[_]] = {
+  private def cleanRecompute(): Map[Location[_],immutable.List[Location[_]]] = {
+    val derivedSnapshot = derived.get()
+    recompute filterKeys {case key => !derivedSnapshot.contains(key)}
+  }
+
+  private def addCause(location: Location[_], causeListOption: Option[immutable.List[Location[_]]]): immutable.List[Location[_]] = {
+    causeListOption match {
+      case Some(list) => if (list contains location) list else location :: list
+      case _ => location :: Nil
+    }
+  }
+
+  private def propagateRecompute(location: Location[_]): Seq[DerivedLocation[_]] = {
     crystal.propagators flatMap ((propagator) => propagator.propagate(location, this))
   }
 
@@ -67,6 +82,22 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
           trace(s"Retrieved assigned location with key: $ordinal: $key: $valueOption")
           valueOption map location.cast
         })
+    }
+  }
+
+  def last[T](location: Location[T]): Option[T] = {
+    location match {
+      case DerivedLocation(key, valueType) =>
+        derived.get().get(location) map valueType.cast match {
+          case Some(value) => Some(value)
+          case _ =>
+            this.previousStateOption match {
+              case Some(previousState) => previousState.last(location)
+              case _ => None
+            }
+        }
+      case AssignedLocation(key, valueType) =>
+        model.getOrElse(location, None) map valueType.cast
     }
   }
 

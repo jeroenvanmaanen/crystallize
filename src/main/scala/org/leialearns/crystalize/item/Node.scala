@@ -16,6 +16,13 @@ class Node(_parent: Option[Node], _item: Item) extends Sortable {
     }
   }
 
+  def depth: Long = {
+    parent match {
+      case Some(parentNode) => parentNode.depth + 1L
+      case _ => 1
+    }
+  }
+
   def toInnerString: String = {
     item.toString + (if (parent.isDefined) " > " + parent.get.toInnerString else "")
   }

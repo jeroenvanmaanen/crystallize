@@ -81,7 +81,13 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     logger.debug(s"Time t2: ${t2.ordinal}")
     expectValue((), t2.get(justLeftExtensible))
 
-    for (line <- Dump.dump("", t2)) {
+    whenReady(crystal.update(justLeft, "hi", (_: String) => "hi")) {
+      state => state shouldBe a [State[_]]
+    }
+    val t3 = crystal.head.get()
+    expectValue((), t3.get(justLeftExtensible))
+
+    for (line <- Dump.dump("", t3)) {
       logger.debug(line)
     }
   }

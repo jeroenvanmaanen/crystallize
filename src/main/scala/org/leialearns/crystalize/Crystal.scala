@@ -8,6 +8,7 @@ import org.leialearns.crystalize.item.{Category, Item, Node}
 import scala.collection.mutable
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 class Crystal(_propagators: Seq[Propagator]) extends Logging {
