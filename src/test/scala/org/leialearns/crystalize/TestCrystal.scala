@@ -4,7 +4,7 @@ import java.util.NoSuchElementException
 
 import org.leialearns.crystalize.item.{Node, Item, Category}
 import org.leialearns.crystalize.model.{ExtensiblePropagator, ItemCounts, Observed, Extensible}
-import org.leialearns.crystalize.util.Dump
+import org.leialearns.crystalize.util.{LoggingConfiguration, Dump}
 import org.scalatest.{Matchers, FunSuite}
 import java.lang.Long
 

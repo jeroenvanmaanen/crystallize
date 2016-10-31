@@ -1,7 +1,7 @@
 package org.leialearns.crystalize.item
 
 import grizzled.slf4j.Logging
-import org.leialearns.crystalize.LoggingConfiguration
+import org.leialearns.crystalize.util.LoggingConfiguration
 import org.scalatest.FunSuite
 
 class TestItems extends FunSuite with LoggingConfiguration with Logging {
