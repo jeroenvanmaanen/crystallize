@@ -108,7 +108,7 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
   def lastDerived[T](location: DerivedLocation[T]): Option[(Long,T)] = {
     derived.get().get(location) match {
       case Some((age, Some(value))) =>
-        debug(s"Value: [$value]")
+        trace(s"Last derived: value: [$value]: $location")
         Some((age, location._valueType.cast(value)))
       case _ =>
         this.previousStateOption match {
@@ -121,7 +121,7 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
   def fresh[T](location: DerivedLocation[T]): Option[(Long,T)] = {
     derived.get().get(location) match {
       case Some((age, Some(value))) =>
-        debug(s"Value: [$value] (Age: $age)")
+        trace(s"Fresh: value: [$value] (Age: $age): $location")
         if (age > 0l) None else Some((age, location._valueType.cast(value)))
       case _ => None
     }
