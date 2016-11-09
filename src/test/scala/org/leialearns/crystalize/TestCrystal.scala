@@ -3,7 +3,7 @@ package org.leialearns.crystalize
 import java.util.NoSuchElementException
 
 import org.leialearns.crystalize.item.{Node, Item, Category}
-import org.leialearns.crystalize.model.{ExtensiblePropagator, ItemCounts, Observed, Extensible}
+import org.leialearns.crystalize.model._
 import org.leialearns.crystalize.util.{Marker, LoggingConfiguration, Dump}
 import org.scalatest.{Matchers, FunSuite}
 import java.lang.Long
@@ -63,7 +63,7 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     val leftRightNode = Node.getNode(justLeftNode, right)
     val leftRight = new AssignedLocation(leftRightNode, classOf[Long])
     val justLeftExtensible = Extensible.createExtensibleLocation(justLeftNode)
-    val crystal = new Crystal(new ExtensiblePropagator() :: Nil)
+    val crystal = new Crystal(new ExtensiblePropagator() :: MaxDepth.MAX_DEPTH :: Nil)
     val t0 = crystal.head.get()
     logger.debug(s"Time t0: ${t0.ordinal}")
     expectNoValue(t0.get(justLeftExtensible))
@@ -86,8 +86,20 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     }
     val t3 = crystal.head.get()
     expectValue(Marker.MARKER, t3.get(justLeftExtensible))
+    expectValue(1l, t3.get(MaxDepth.MAX_DEPTH_LOCATION)) // Computes unknown value
+    expectValue(1l, t3.get(MaxDepth.MAX_DEPTH_LOCATION)) // Returns previously computed value
 
     for (line <- Dump.dump("", t3)) {
+      logger.debug(line)
+    }
+
+    whenReady(crystal.update(justLeft, "start", (s: String) => s + ".")) {
+      state => state shouldBe a [State[_]]
+    }
+    val t4 = crystal.head.get()
+    expectValue(1l, t4.get(MaxDepth.MAX_DEPTH_LOCATION))
+
+    for (line <- Dump.dump("", t4)) {
       logger.debug(line)
     }
   }

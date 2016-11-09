@@ -1,13 +1,14 @@
 package org.leialearns.crystalize.util
 
+import java.io.{FileInputStream, File}
 import java.util.logging.LogManager
 
 import grizzled.slf4j.Logger
 
 trait LoggingConfiguration {
-  val logConfig = "/logging.properties"
-  System.err.println("Configuring logging using log directory: " + logConfig)
-  val logConfigStream = classOf[LoggingConfiguration].getResourceAsStream(logConfig)
+  val logConfigFile = "logging.properties"
+  val current = new File(".", logConfigFile)
+  val logConfigStream = if (current.exists()) new FileInputStream(current) else classOf[LoggingConfiguration].getResourceAsStream("/" + logConfigFile)
   val logManager: LogManager = LogManager.getLogManager
   logManager.readConfiguration(logConfigStream)
 

@@ -43,6 +43,6 @@ CLASS_PATH="${CLASSES}${LIBRARIES}"
 log "CLASS_PATH=[${CLASS_PATH}]"
 
 (
-    cd "${RESOURCES}"
-    "${JAVA_HOME}/bin/java" -cp "${CLASS_PATH}" org.leialearns.crystalize.interaction.FileExample logging.properties
+    cd "${PROJECT}"
+    "${JAVA_HOME}/bin/java" -cp "${CLASS_PATH}" org.leialearns.crystalize.interaction.FileExample data/kjv-10-simplified.txt
 )

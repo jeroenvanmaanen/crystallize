@@ -69,14 +69,25 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
 
   def get[T](location: Location[T]): Future[T] = {
     location match {
-      case DerivedLocation(key, _) =>
+      case derivedLocation: DerivedLocation[T] =>
+        val key = derivedLocation._key
         trace(s"Get derived location with key: $ordinal: $key")
-        val future = key.derive(location.asInstanceOf[DerivedLocation[T]], this)
-        future.onComplete(attempt => {
-          trace(s"Derived value for location with key: $ordinal: $key: $attempt")
-          store(location.asInstanceOf[DerivedLocation[T]], attempt)
-        })
-        future
+        val lastValueOption: Option[(Long,T)] = if (recompute.contains(location)) fresh(derivedLocation) else last(location)
+        val result = lastValueOption match {
+          case Some((age, value)) =>
+            trace(s"Last value: ($age, $value)")
+            store(derivedLocation, age, Some(value))
+            Future.successful(value)
+          case _ =>
+            trace(s"About to derive: $derivedLocation")
+            val future = key.derive(derivedLocation, this)
+            future.onComplete(attempt => {
+              trace(s"Derived value for location with key: $ordinal: $key: $attempt")
+              store(location.asInstanceOf[DerivedLocation[T]], 0l, attempt)
+            })
+            future
+        }
+        result
       case AssignedLocation(key, valueType) =>
         model.get(location) flatMap ((valueOption) => {
           trace(s"Retrieved assigned location with key: $ordinal: $key: $valueOption")
@@ -85,26 +96,47 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     }
   }
 
-  def last[T](location: Location[T]): Option[T] = {
+  def last[T](location: Location[T]): Option[(Long,T)] = {
     location match {
       case DerivedLocation(key, valueType) =>
-        derived.get().get(location) map valueType.cast match {
-          case Some(value) => Some(value)
-          case _ =>
-            this.previousStateOption match {
-              case Some(previousState) => previousState.last(location)
-              case _ => None
-            }
-        }
+        lastDerived(location.asInstanceOf[DerivedLocation[T]])
       case AssignedLocation(key, valueType) =>
-        model.getOrElse(location, None) map valueType.cast
+        model.getOrElse(location, None) map ((value) => (0l, valueType.cast(value)))
     }
   }
 
-  protected def store[T](location: DerivedLocation[T], valueOption: Option[T]): Unit = {
+  def lastDerived[T](location: DerivedLocation[T]): Option[(Long,T)] = {
+    derived.get().get(location) match {
+      case Some((age, Some(value))) =>
+        debug(s"Value: [$value]")
+        Some((age, location._valueType.cast(value)))
+      case _ =>
+        this.previousStateOption match {
+          case Some(previousState) => previousState.lastDerived(location) map increment
+          case _ => None
+        }
+    }
+  }
+
+  def fresh[T](location: DerivedLocation[T]): Option[(Long,T)] = {
+    derived.get().get(location) match {
+      case Some((age, Some(value))) =>
+        debug(s"Value: [$value] (Age: $age)")
+        if (age > 0l) None else Some((age, location._valueType.cast(value)))
+      case _ => None
+    }
+  }
+
+  private def increment[T](previous: (Long,T)): (Long,T) = {
+    previous match {
+      case (age, value) => (age + 1, value)
+    }
+  }
+
+  protected def store[T](location: DerivedLocation[T], age: Long, valueOption: Option[T]): Unit = {
     val oldDerived = derived.get()
-    val newDerived = oldDerived + ((location, (0l, valueOption)))
-    if (derived.compareAndSet(oldDerived, newDerived)) () else store(location, valueOption)
+    val newDerived = oldDerived + ((location, (age, valueOption)))
+    if (derived.compareAndSet(oldDerived, newDerived)) () else store(location, age, valueOption)
   }
 
   override def dumpAs: Iterable[_] = {

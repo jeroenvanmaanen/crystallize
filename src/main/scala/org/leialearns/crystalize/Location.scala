@@ -1,6 +1,8 @@
 package org.leialearns.crystalize
 
-abstract class Location[T](_char: Char, _key: Any, _valueType: Class[T]) {
+import org.leialearns.crystalize.util.Sortable
+
+abstract class Location[T](_char: Char, _key: Any, _valueType: Class[T]) extends Sortable {
   if (_valueType == java.lang.Void.TYPE) throw new IllegalArgumentException(s"Cannot use location with void type: ${_valueType}: ${_char}: ${_key}")
   val char = _char
   val key = _key
@@ -16,6 +18,13 @@ abstract class Location[T](_char: Char, _key: Any, _valueType: Class[T]) {
 
   override def hashCode(): Int = {
     char.hashCode() + key.hashCode() + valueType.hashCode()
+  }
+
+  override def sortKey = {
+    key match {
+      case sortable: Sortable => s"${sortable.sortKey} $char"
+      case _ => s"${key.toString} $char"
+    }
   }
 
   override def toString = {
