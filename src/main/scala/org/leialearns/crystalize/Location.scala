@@ -1,6 +1,7 @@
 package org.leialearns.crystalize
 
 abstract class Location[T](_char: Char, _key: Any, _valueType: Class[T]) {
+  if (_valueType == java.lang.Void.TYPE) throw new IllegalArgumentException(s"Cannot use location with void type: ${_valueType}: ${_char}: ${_key}")
   val char = _char
   val key = _key
   val valueType = _valueType

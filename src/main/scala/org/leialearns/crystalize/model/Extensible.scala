@@ -3,20 +3,21 @@ package org.leialearns.crystalize.model
 import grizzled.slf4j.Logging
 import org.leialearns.crystalize._
 import org.leialearns.crystalize.item.{Category, Item, Node}
+import org.leialearns.crystalize.util.Marker
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class Extensible(_node: Node) extends Derived[Unit] with Logging {
+class Extensible(_node: Node) extends Derived[Marker] with Logging {
   val node: Node = _node
 
-  override def derive(location: DerivedLocation[Unit], state: State[_]): Future[Unit] = {
+  override def derive(location: DerivedLocation[Marker], state: State[_]): Future[Marker] = {
     debug(s"Derive: ${state.ordinal}: $location")
     val observedLocation = Observed.createObservedLocation(node)
     val observedDistributionOption = state.get(observedLocation)
     val future = observedDistributionOption.map((itemCounts: ItemCounts) => {
       debug(s"Item counts total: ${state.ordinal}: $location: ${itemCounts.total}")
-      if (itemCounts.total < 10) throw new NoSuchElementException else ()
+      if (itemCounts.total < 10) throw new NoSuchElementException else Marker.MARKER
     })
     future.onFailure({
       case t => debug(s"No observed distribution found: ${state.ordinal}: $location: $t")
@@ -43,7 +44,7 @@ object Extensible {
   val extensibleItem = Item.getItem(extensibleCategory, ())
 
   def createExtensibleLocation(node: Node) = {
-    new DerivedLocation[Unit](new Extensible(node), classOf[Unit])
+    new DerivedLocation[Marker](new Extensible(node), classOf[Marker])
   }
 
 }

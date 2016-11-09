@@ -4,7 +4,7 @@ import java.util.NoSuchElementException
 
 import org.leialearns.crystalize.item.{Node, Item, Category}
 import org.leialearns.crystalize.model.{ExtensiblePropagator, ItemCounts, Observed, Extensible}
-import org.leialearns.crystalize.util.{LoggingConfiguration, Dump}
+import org.leialearns.crystalize.util.{Marker, LoggingConfiguration, Dump}
 import org.scalatest.{Matchers, FunSuite}
 import java.lang.Long
 
@@ -79,13 +79,13 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     }
     val t2 = crystal.head.get()
     logger.debug(s"Time t2: ${t2.ordinal}")
-    expectValue((), t2.get(justLeftExtensible))
+    expectValue(Marker.MARKER, t2.get(justLeftExtensible))
 
     whenReady(crystal.update(justLeft, "hi", (_: String) => "hi")) {
       state => state shouldBe a [State[_]]
     }
     val t3 = crystal.head.get()
-    expectValue((), t3.get(justLeftExtensible))
+    expectValue(Marker.MARKER, t3.get(justLeftExtensible))
 
     for (line <- Dump.dump("", t3)) {
       logger.debug(line)
