@@ -117,7 +117,7 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
         while (result.isEmpty && ancestorState.previousStateOption.isDefined) {
           ancestorState = ancestorState.previousStateOption.get
           i += 1
-          result = getDerived(location)
+          result = ancestorState.getDerived(location)
         }
         result match {
           case Some((age, valueOption)) => Some((age + i, valueOption))
