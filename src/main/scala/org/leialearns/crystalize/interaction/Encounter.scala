@@ -31,7 +31,10 @@ class Encounter(_crystal: Crystal) extends Logging {
     while (true) {
       val observation = environment.nextAction()
       info(s"Observation: $observation")
-      if (observation == Actor.stop) return
+      if (observation == Actor.stop) {
+        info("Observation STOP")
+        return
+      }
 
       var nodeOption: Option[Node] = None
       for (item <- state.reverse) {
@@ -44,6 +47,7 @@ class Encounter(_crystal: Crystal) extends Logging {
           updateObserved(node, observation)
         case _ => ()
       }
+      trace(s"After node option: $nodeOption")
 
       if (observation != Actor.empty) {
         state = state.enqueue(observation)
@@ -51,7 +55,10 @@ class Encounter(_crystal: Crystal) extends Logging {
       }
       val action = responder.nextAction()
       info(s"Action: $action")
-      if (action == Actor.stop) return
+      if (action == Actor.stop) {
+        info("Action STOP")
+        return
+      }
       if (action != Actor.empty) {
         state = state.enqueue(action)
         environment.provideItem(action)

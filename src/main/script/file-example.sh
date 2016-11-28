@@ -40,7 +40,7 @@ MVN_REPO="$(cd "${PROJECT}" ; mvn -X 2>&1 | sed -n -e 's/^.* Using local reposit
 log "MVN_REPO=[${MVN_REPO}]"
 
 LIBRARIES="$(mvn dependency:list 2>&1 | sed -n -e '/:slf4j-jdk14:/s/:test$/:compile/' -e '/:test$/d' -e '/:.*:.*:.*:/s/^[[]INFO[]]    //p' | format-libraries "${MVN_REPO}")"
-CLASS_PATH="${CLASSES}${LIBRARIES}"
+CLASS_PATH="${CLASSES}:${RESOURCES}${LIBRARIES}"
 log "CLASS_PATH=[${CLASS_PATH}]"
 
 (

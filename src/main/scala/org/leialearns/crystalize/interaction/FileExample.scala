@@ -25,7 +25,9 @@ object FileExample {
     try {
       run(file, limit)
     } catch {
-      case e: Exception => logger.error("Aborted", e)
+      case e: Throwable =>
+        e.printStackTrace()
+        logger.error("Aborted", e)
     }
   }
 
@@ -37,6 +39,11 @@ object FileExample {
     val crystal = new Crystal(new ExtensiblePropagator() :: MaxDepth.MAX_DEPTH :: Nil)
     val encounter = new Encounter(crystal)
     val runDone = encounter.run(actor, environment)
+    runDone onFailure {
+      case exception: Throwable =>
+        exception.printStackTrace()
+        logger.warn("Exception while running encounter", exception)
+    }
     while (!runDone.isCompleted) {
       Thread.sleep(500l)
     }

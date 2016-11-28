@@ -12,7 +12,7 @@ class MaxDepth extends Derived[java.lang.Long] with Propagator with Logging {
 
   override def derive(location: DerivedLocation[java.lang.Long], state: State[_]): Future[java.lang.Long] = {
     Future {
-      val oldMaxDepth: Long = state.last(MAX_DEPTH_LOCATION).getOrElse((0l,java.lang.Long.valueOf(0)))._2
+      val oldMaxDepth: Long = lastMaxDepth(state)
       val causes = state.recompute.getOrElse(MAX_DEPTH_LOCATION, Nil)
       val result = causes map getObservedDepth match {
         case Nil => oldMaxDepth
@@ -28,11 +28,17 @@ class MaxDepth extends Derived[java.lang.Long] with Propagator with Logging {
 
   override def propagate(location: Location[_], state: State[_]): Seq[DerivedLocation[_]] = {
     val observedDepth = getObservedDepth(location)
-    if (observedDepth > state.last(MAX_DEPTH_LOCATION).getOrElse(0l,java.lang.Long.valueOf(0))._2) {
+    if (observedDepth > lastMaxDepth(state)) {
       MAX_DEPTH_LOCATION :: Nil
     } else {
       Nil
     }
+  }
+
+  def lastMaxDepth(state: State[_]): Long = {
+    val lastMaxDepthOption: Option[(Long,Option[java.lang.Long])] = state.last(MAX_DEPTH_LOCATION)
+    val lastMaxDepthTuple: (Long,Option[java.lang.Long]) = lastMaxDepthOption.getOrElse((0l, None))
+    lastMaxDepthTuple._2.getOrElse(java.lang.Long.valueOf(0l)).longValue()
   }
 
   def getObservedDepth(location: Location[_]): Long = {

@@ -72,12 +72,12 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
       case derivedLocation: DerivedLocation[T] =>
         val key = derivedLocation._key
         trace(s"Get derived location with key: $ordinal: $key")
-        val lastValueOption: Option[(Long,T)] = if (recompute.contains(location)) fresh(derivedLocation) else last(location)
+        val lastValueOption: Option[(Long,Option[T])] = if (recompute.contains(location)) fresh(derivedLocation) else last(location)
         val result = lastValueOption match {
-          case Some((age, value)) =>
-            trace(s"Last value: ($age, $value)")
-            store(derivedLocation, age, Some(value))
-            Future.successful(value)
+          case Some((age, valueOption)) =>
+            trace(s"Last value: ($age, $valueOption)")
+            store(derivedLocation, age, valueOption map derivedLocation._valueType.cast)
+            optionToFuture(valueOption)
           case _ =>
             trace(s"About to derive: $derivedLocation")
             val future = key.derive(derivedLocation, this)
@@ -96,33 +96,47 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     }
   }
 
-  def last[T](location: Location[T]): Option[(Long,T)] = {
+  def last[T](location: Location[T]): Option[(Long,Option[T])] = {
     location match {
       case DerivedLocation(key, valueType) =>
         lastDerived(location.asInstanceOf[DerivedLocation[T]])
       case AssignedLocation(key, valueType) =>
-        model.getOrElse(location, None) map ((value) => (0l, valueType.cast(value)))
+        Some(0l, model.getOrElse(location, None) map valueType.cast)
     }
   }
 
-  def lastDerived[T](location: DerivedLocation[T]): Option[(Long,T)] = {
+  def lastDerived[T](location: DerivedLocation[T]): Option[(Long,Option[T])] = {
     derived.get().get(location) match {
-      case Some((age, Some(value))) =>
+      case Some((age, value)) =>
         trace(s"Last derived: value: [$value]: $location")
-        Some((age, location._valueType.cast(value)))
+        Some((age, value map location._valueType.cast))
       case _ =>
-        this.previousStateOption match {
-          case Some(previousState) => previousState.lastDerived(location) map increment
+        var i = 0l
+        var ancestorState: State[_] = this
+        var result: Option[(Long,Option[T])] = None
+        while (result.isEmpty && ancestorState.previousStateOption.isDefined) {
+          ancestorState = ancestorState.previousStateOption.get
+          i += 1
+          result = getDerived(location)
+        }
+        result match {
+          case Some((age, valueOption)) => Some((age + i, valueOption))
           case _ => None
         }
     }
   }
 
-  def fresh[T](location: DerivedLocation[T]): Option[(Long,T)] = {
+  def getDerived[T](location: DerivedLocation[T]): Option[(Long,Option[T])] = {
+    derived.get.get(location) map {
+      case (age, valueOption) => (age, valueOption map location._valueType.cast)
+    }
+  }
+
+  def fresh[T](location: DerivedLocation[T]): Option[(Long,Option[T])] = {
     derived.get().get(location) match {
-      case Some((age, Some(value))) =>
-        trace(s"Fresh: value: [$value] (Age: $age): $location")
-        if (age > 0l) None else Some((age, location._valueType.cast(value)))
+      case Some((age, valueOption)) =>
+        trace(s"Fresh: value: [$valueOption] (Age: $age): $location")
+        if (age > 0l) None else Some((age, valueOption map location._valueType.cast))
       case _ => None
     }
   }
@@ -143,7 +157,7 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     immutable.HashMap[OrderedKey,AnyRef]() +
       (new OrderedKey("1", "type") -> "state") +
       (new OrderedKey("2", "name") -> name) +
-      (new OrderedKey("3", "ordinal") -> name) +
+      (new OrderedKey("3", "ordinal") -> ordinal) +
       (new OrderedKey("4", "model") -> model) +
       (new OrderedKey("5", "derived") -> derived.get) +
       (new OrderedKey("6", "recompute") -> recompute)
