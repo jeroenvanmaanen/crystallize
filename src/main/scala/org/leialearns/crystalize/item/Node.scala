@@ -1,20 +1,10 @@
 package org.leialearns.crystalize.item
 
-import org.leialearns.crystalize.Crystal
-import org.leialearns.crystalize.util.Sortable
+import org.leialearns.crystalize.util.{Intern, Internalizable, Sortable}
 
-class Node(_parent: Option[Node], _item: Item) extends Sortable {
+class Node private (_parent: Option[Node], _item: Item) extends Sortable with Internalizable {
   val parent = _parent
   val item = _item
-
-  override def hashCode(): Int = this.parent.hashCode + this.item.hashCode
-
-  override def equals(other: Any): Boolean = {
-    other match {
-      case node: Node => node.parent == this.parent && node.item == this.item
-      case _ => false
-    }
-  }
 
   def depth: Long = {
     parent match {
@@ -22,6 +12,8 @@ class Node(_parent: Option[Node], _item: Item) extends Sortable {
       case _ => 1
     }
   }
+
+  def equivalenceKey = (parent, item)
 
   def toInnerString: String = {
     item.toString + (if (parent.isDefined) " > " + parent.get.toInnerString else "")
@@ -38,14 +30,14 @@ class Node(_parent: Option[Node], _item: Item) extends Sortable {
 
 object Node {
   def getNode(parentOption: Option[Node], item: Item): Node = {
-    Crystal.internalize(new Node(parentOption, item))
+    Intern.internalize(new Node(parentOption, item))
   }
 
   def getNode(parent: Node, item: Item): Node = {
-    Crystal.internalize(new Node(Some(parent), item))
+    Intern.internalize(new Node(Some(parent), item))
   }
 
   def getNode(item: Item): Node = {
-    Crystal.internalize(new Node(None, item))
+    Intern.internalize(new Node(None, item))
   }
 }

@@ -1,19 +1,12 @@
 package org.leialearns.crystalize.item
 
-import org.leialearns.crystalize.Crystal
+import org.leialearns.crystalize.util.{Intern, Internalizable}
 
-class Item(_category: Category, _content: Any) {
+class Item private (_category: Category, _content: Any) extends Internalizable {
   val category = _category
   val content = _content
 
-  override def hashCode(): Int = category.hashCode + content.hashCode
-
-  override def equals(other: Any): Boolean = {
-    other match {
-      case item: Item => item.category == this.category && item.content == this.content
-      case _ => false
-    }
-  }
+  override def equivalenceKey = (category, content)
 
   override def toString: String = {
     "[I:" + category.name + ":" + content.toString + "]"
@@ -22,6 +15,6 @@ class Item(_category: Category, _content: Any) {
 
 object Item {
   def getItem(category: Category, content: Any): Item = {
-    Crystal.internalize(new Item(category, content))
+    Intern.internalize(new Item(category, content))
   }
 }

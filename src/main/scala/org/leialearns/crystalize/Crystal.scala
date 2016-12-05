@@ -1,13 +1,12 @@
 package org.leialearns.crystalize
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.{AtomicReference, AtomicLong}
+import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
 
 import grizzled.slf4j.Logging
 import org.leialearns.crystalize.item.{Category, Item, Node}
 
-import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
 import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
@@ -76,20 +75,5 @@ class Crystal(_propagators: Seq[Propagator]) extends Logging {
       case Success(value) => Some(value)
       case Failure(t) => None
     }
-  }
-}
-
-object Crystal {
-  private val internalized = new ConcurrentHashMap[Any,Any]()
-
-  def internalize[T](key: T): T = {
-    val value = internalized.get(key)
-    val result = if (value == null) {
-      internalized.put(key, key)
-      key
-    } else {
-      value
-    }
-    key.getClass.cast(result)
   }
 }
