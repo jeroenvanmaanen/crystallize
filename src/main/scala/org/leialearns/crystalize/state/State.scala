@@ -1,13 +1,14 @@
-package org.leialearns.crystalize
+package org.leialearns.crystalize.state
 
 import java.util.concurrent.atomic.AtomicReference
 
 import grizzled.slf4j.Logging
-import org.leialearns.crystalize.util.{OrderedKey, DumpCustom}
+import org.leialearns.crystalize.util.{DumpCustom, OrderedKey}
+import org.leialearns.crystalize.{AssignedLocation, Crystal, DerivedLocation, Location}
 
 import scala.collection.immutable
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 

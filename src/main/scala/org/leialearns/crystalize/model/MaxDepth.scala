@@ -3,6 +3,7 @@ package org.leialearns.crystalize.model
 import grizzled.slf4j.Logging
 import org.leialearns.crystalize._
 import org.leialearns.crystalize.item.Node
+import org.leialearns.crystalize.state.State
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

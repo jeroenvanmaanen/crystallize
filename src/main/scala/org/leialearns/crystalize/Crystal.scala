@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
 
 import grizzled.slf4j.Logging
 import org.leialearns.crystalize.item.{Category, Item, Node}
+import org.leialearns.crystalize.state.State
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}

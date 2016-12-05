@@ -2,6 +2,7 @@ package org.leialearns.crystalize.model
 
 import org.leialearns.crystalize._
 import org.leialearns.crystalize.item.Node
+import org.leialearns.crystalize.state.State
 
 class ExtensiblePropagator extends Propagator {
 

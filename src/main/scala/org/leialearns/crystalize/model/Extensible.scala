@@ -3,6 +3,7 @@ package org.leialearns.crystalize.model
 import grizzled.slf4j.Logging
 import org.leialearns.crystalize._
 import org.leialearns.crystalize.item.{Category, Item, Node}
+import org.leialearns.crystalize.state.State
 import org.leialearns.crystalize.util.Marker
 
 import scala.concurrent.ExecutionContext.Implicits.global
