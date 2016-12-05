@@ -24,10 +24,10 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     case Some(previousState) => previousState.model
     case _ => new immutable.HashMap[Location[_],Option[Any]]()
   }) + ((_location: Location[_], _valueOption: Option[Any]))
-  var derived = new AtomicReference[immutable.HashMap[Location[_],(Long,Option[Any])]](new immutable.HashMap[Location[_],(Long,Option[Any])]())
+  var derived = new AtomicReference[immutable.HashMap[Location[_],(Long,Option[Any])]](immutable.HashMap.empty)
   val recompute: Map[Location[_],immutable.List[Location[_]]] = extendRecompute(previousStateOption match {
     case Some(previousState) => previousState.cleanRecompute()
-    case _ => new immutable.HashMap[Location[_],immutable.List[Location[_]]]()
+    case _ => immutable.HashMap.empty
   }, _location :: Nil)
 
   private def extendRecompute(oldRecompute: Map[Location[_],immutable.List[Location[_]]], locations: Seq[Location[_]]): Map[Location[_],immutable.List[Location[_]]] = {
@@ -35,10 +35,10 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     val nextLocations: Seq[(DerivedLocation[_],immutable.List[Location[_]])] = nonMembers flatMap {
       case nonMember => for (x <- propagateRecompute(nonMember)) yield (x, addCause(nonMember, oldRecompute.get(x)))
     }
-    val nextRecompute = oldRecompute ++ nextLocations
     if (nextLocations.isEmpty) {
-      nextRecompute
+      oldRecompute
     } else {
+      val nextRecompute = oldRecompute ++ nextLocations
       extendRecompute(nextRecompute, nextLocations map {case (x, y) => x})
     }
   }

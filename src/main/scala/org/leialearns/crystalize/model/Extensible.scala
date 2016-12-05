@@ -15,9 +15,11 @@ class Extensible(_node: Node) extends Derived[Marker] with Logging {
     debug(s"Derive: ${state.ordinal}: $location")
     val observedLocation = Observed.createObservedLocation(node)
     val observedDistributionOption = state.get(observedLocation)
+    val threshold = 10 << (node.depth - 1)
+    debug(s"Threshold: $threshold ($node)")
     val future = observedDistributionOption.map((itemCounts: ItemCounts) => {
       debug(s"Item counts total: ${state.ordinal}: $location: ${itemCounts.total}")
-      if (itemCounts.total < 10) throw new NoSuchElementException else Marker.MARKER
+      if (itemCounts.total < threshold) throw new NoSuchElementException else Marker.MARKER
     })
     future.onFailure({
       case t => debug(s"No observed distribution found: ${state.ordinal}: $location: $t")
