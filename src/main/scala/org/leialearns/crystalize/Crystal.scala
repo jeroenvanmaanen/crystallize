@@ -19,7 +19,7 @@ class Crystal(_propagators: Seq[Propagator]) extends Logging {
   var head: AtomicReference[State[_]] = new AtomicReference[State[_]](new State(None, "head", this, 0, rootExpectedLocation, Some(true)))
 
   def advance(newHead: State[_]): Boolean = {
-    head.compareAndSet(newHead.previousStateOption.get, newHead)
+    head.compareAndSet(newHead.previousStateOption().get, newHead)
   }
 
   def put[T <: Any](location: AssignedLocation[T], value: T): State[_] = {

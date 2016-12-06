@@ -5,8 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.immutable
 
 object Intern {
-  private val internalized = new AtomicReference[immutable.HashMap[AnyRef,Internalizable]]()
-  internalized.set(immutable.HashMap.empty)
+  private val internalized = new AtomicReference[immutable.HashMap[AnyRef,Internalizable]](immutable.HashMap.empty)
 
   def internalize[T <: Internalizable](thing: T): T = {
     val key = thing.equivalenceKey

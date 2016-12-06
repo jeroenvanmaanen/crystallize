@@ -17,16 +17,16 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
     this(Some(previousState), previousState.name, previousState.crystal, previousState.ordinal + 1, location, Some(value))
   }
 
-  val previousStateOption = _previousStateOption
+  def previousStateOption() = _previousStateOption
   val name = _name
   val crystal = _crystal
   val ordinal = _ordinal
-  val model: immutable.HashMap[Location[_],Option[Any]] = (_previousStateOption match {
+  val model: immutable.HashMap[Location[_],Option[Any]] = (previousStateOption() match {
     case Some(previousState) => previousState.model
     case _ => new immutable.HashMap[Location[_],Option[Any]]()
   }) + ((_location: Location[_], _valueOption: Option[Any]))
-  var derived = new AtomicReference[immutable.HashMap[Location[_],(Long,Option[Any])]](immutable.HashMap.empty)
-  val recompute: Map[Location[_],immutable.List[Location[_]]] = extendRecompute(previousStateOption match {
+  var derived = new AtomicReference[immutable.Map[Location[_],(Long,Option[Any])]](immutable.HashMap.empty)
+  val recompute: Map[Location[_],immutable.List[Location[_]]] = extendRecompute(previousStateOption() match {
     case Some(previousState) => previousState.cleanRecompute()
     case _ => immutable.HashMap.empty
   }, _location :: Nil)
@@ -61,11 +61,11 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
   }
 
   def put[T](location: AssignedLocation[T], value: T): State[T] = {
-    new State(Some(this), this._name, this.crystal, this._ordinal + 1, location, Some(value))
+    new State(Some(this), s"Put $location", this.crystal, this._ordinal + 1, location, Some(value))
   }
 
   def remove(location: AssignedLocation[_]): State[_] = {
-    new State(Some(this), this._name, this.crystal, this._ordinal + 1, location, None)
+    new State(Some(this), s"Remove $location", this.crystal, this._ordinal + 1, location, None)
   }
 
   def get[T](location: Location[T]): Future[T] = {
@@ -115,8 +115,10 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
         var i = 0l
         var ancestorState: State[_] = this
         var result: Option[(Long,Option[T])] = None
-        while (result.isEmpty && ancestorState.previousStateOption.isDefined) {
-          ancestorState = ancestorState.previousStateOption.get
+        var greatAncestorStateOption = ancestorState.previousStateOption()
+        while (result.isEmpty && greatAncestorStateOption.isDefined) {
+          ancestorState = greatAncestorStateOption.get
+          greatAncestorStateOption = ancestorState.previousStateOption()
           i += 1
           result = ancestorState.getDerived(location)
         }

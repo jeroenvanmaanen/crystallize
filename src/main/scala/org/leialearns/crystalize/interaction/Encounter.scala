@@ -1,9 +1,11 @@
 package org.leialearns.crystalize.interaction
 
 import grizzled.slf4j.Logging
-import org.leialearns.crystalize.Crystal
+import org.leialearns.crystalize.{Location, Crystal}
 import org.leialearns.crystalize.item.{Item, Node}
 import org.leialearns.crystalize.model.{ItemCounts, Extensible, MaxDepth, Observed}
+import org.leialearns.crystalize.state.{State, ConsolidateState}
+import org.leialearns.crystalize.util.Marker
 
 import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -14,7 +16,7 @@ import scala.util.{Failure, Success}
 class Encounter(_crystal: Crystal) extends Logging {
   info("Created encounter")
 
-  val crystal = _crystal
+  val crystal: Crystal = _crystal
 
   def run(responder: Actor, environment: Actor): Future[Unit] = {
     info("About to run encounter")
@@ -28,6 +30,8 @@ class Encounter(_crystal: Crystal) extends Logging {
     var maxDepth = 1l
     var maxDepthFuture: Future[java.lang.Long] = crystal.head.get().get(MaxDepth.MAX_DEPTH_LOCATION)
     var state = immutable.Queue[Item]()
+    var consolidated = Future.successful(Marker.MARKER)
+    debug(s"Consolidated is completed: ${consolidated.isCompleted}")
     while (true) {
       val observation = environment.nextAction()
       info(s"Observation: $observation")
@@ -36,10 +40,7 @@ class Encounter(_crystal: Crystal) extends Logging {
         return
       }
 
-      var nodeOption: Option[Node] = None
-      for (item <- state.reverse) {
-        nodeOption = Some(Node.getNode(nodeOption, item))
-      }
+      var nodeOption = findNode(crystal.head.get(), state.reverse)
       trace(s"Node option: $nodeOption")
       nodeOption match {
         case Some(node) =>
@@ -76,6 +77,42 @@ class Encounter(_crystal: Crystal) extends Logging {
       while (state.length > maxStateLength) {
         state = state.dequeue._2
       }
+      if (consolidated.isCompleted && crystal.head.get().previousStateOption().isDefined) {
+        logStates(crystal.head.get())
+        consolidated = ConsolidateState.consolidate(crystal)
+      }
+    }
+  }
+
+  def findNode(state: State[_], items: immutable.Queue[Item]): Option[Node] = {
+    val locations: Set[Location[_]] = state.model.keySet
+    debug(s"Number of locations in model: ${locations.size}")
+    var nodeOption: Option[Node] = None
+    var tail: immutable.Queue[Item] = items
+    var continue: Boolean = true
+    while (tail.nonEmpty && continue) {
+      val pair = tail.dequeue
+      val item = pair._1
+      tail = pair._2
+      val childNode = Node.getNode(nodeOption, item)
+      if (nodeOption.isEmpty || locations.contains(Observed.createObservedLocation(childNode)) || isExtensible(state, nodeOption.get)) {
+        nodeOption = Some(childNode)
+      } else {
+        continue = false
+      }
+    }
+    nodeOption
+  }
+
+  def isExtensible(state: State[_], node: Node): Boolean = {
+    state.lastDerived(Extensible.createExtensibleLocation(node)).getOrElse((0l, None))._2.isDefined
+  }
+
+  def logStates(state: State[_]): Unit = {
+    debug(s"State: [${state.name}]: #${state.ordinal}")
+    state.previousStateOption() match {
+      case Some(previousState) => logStates(previousState)
+      case _ => ()
     }
   }
 
