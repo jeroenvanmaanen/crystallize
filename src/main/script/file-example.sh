@@ -45,5 +45,5 @@ log "CLASS_PATH=[${CLASS_PATH}]"
 
 (
     cd "${PROJECT}"
-    "${JAVA_HOME}/bin/java" -cp "${CLASS_PATH}" org.leialearns.crystalize.interaction.FileExample "$@" data/kjv-10-simplified.txt
+    "${JAVA_HOME}/bin/java" -cp "${CLASS_PATH}" org.leialearns.crystallize.interaction.FileExample "$@" data/kjv-10-simplified.txt
 )

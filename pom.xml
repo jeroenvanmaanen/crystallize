@@ -8,12 +8,12 @@
         <relativePath />
     </parent>
 
-    <artifactId>crystalize</artifactId>
+    <artifactId>crystallize</artifactId>
     <groupId>org.leialearns</groupId>
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>LEIA learns - Crystalize unmodifyable objects</name>
+    <name>LEIA learns - Crystallize unmodifiable objects</name>
     <url>http://leialearns.org</url>
 
     <repositories>
