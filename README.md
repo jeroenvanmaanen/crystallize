@@ -15,3 +15,6 @@ based on immutable objects. When the model needs to be updated, a layer of sligh
 previous model, which results in a new model. Processes that are still evaluating the old model can continue their
 work unimpeded. In this way, many processes that produce updated versions of the model itself, as well as derived
 models can operate in parallel.
+
+This library is still in its infancy. If you want to try it, running `src/main/script/file-example.sh` is probably a
+good start.
