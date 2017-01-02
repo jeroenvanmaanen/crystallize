@@ -4,10 +4,10 @@ import org.leialearns.crystalize.util.LoggingConfiguration
 import org.scalatest.{Matchers, FunSuite}
 
 class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
-  def testCreateNode(tree: SimpleTree[String, String, Unit], leftNodeOption: Option[AbstractTreeNode[String]], item: String, rightNodeOption: Option[AbstractTreeNode[String]]): AbstractTreeNode[String] = {
+  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[AbstractTreeNode[String]], item: String, rightNodeOption: Option[AbstractTreeNode[String]]): AbstractTreeNode[String] = {
     testCreateNode(tree, leftNodeOption, tree.createItemNode((), item), rightNodeOption)
   }
-  def testCreateNode(tree: SimpleTree[String, String, Unit], leftNodeOption: Option[AbstractTreeNode[String]], bucket: AbstractTreeNode[String], rightNodeOption: Option[AbstractTreeNode[String]]): AbstractTreeNode[String] = {
+  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[AbstractTreeNode[String]], bucket: AbstractTreeNode[String], rightNodeOption: Option[AbstractTreeNode[String]]): AbstractTreeNode[String] = {
     val result = tree.createNode(leftNodeOption, bucket, rightNodeOption, ())
     if (leftNodeOption.isEmpty && rightNodeOption.isEmpty) {
       assert(result == bucket)
@@ -24,7 +24,7 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
   }
 
   test("Simple tree") {
-    val empty = new SimpleTree[String, String, Unit](None, new SetItemKind[String]{})
+    val empty = new SimpleTree[String, String](None, new SetKeyExtractor[String], new SetKeyKind[String]{})
 
     // Item nodes
     val n1 = testCreateNode(empty, None, "one", None)
@@ -63,7 +63,7 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
   }
 
   test("Simple tree map") {
-    val empty = new SimpleTree[(Int, String), Int, String](None, new MapItemKind[Int,String]{ override def getKeyHashCode(key: Int) = key / 10 })
+    val empty = new SimpleTree[(Int, _), Int](None, new MapKeyExtractor[Int], new MapKeyKind[Int]{ override def getKeyHashCode(key: Int) = key / 10 })
 
     val tree = empty
       .insert((50, "one"))
@@ -81,16 +81,16 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
     val leftDump = "<n><n><n/><i>(11,three b)</i>(10,three)</n><i>(20,two)</i><n><n/><i>(30,four)</i>(40,five)</n></n>"
     val rightDump = "<n>(60,seven)<i>(70,six)</i><n/></n>"
     assert(treeDump == s"<t><n>$leftDump<i><n><n/><i>(59,eight)</i><n><n/><i>(55,one b)</i>(50,one)</n></n></i>$rightDump</n></t>")
-    assert(Some("three") == (tree.find(10) map { case x: (Int, String) => x._2 }))
-    assert(Some("three b") == (tree.find(11) map { case x: (Int, String) => x._2 }))
-    assert(Some("two") == (tree.find(20) map { case x: (Int, String) => x._2 }))
-    assert(Some("four") == (tree.find(30) map { case x: (Int, String) => x._2 }))
-    assert(Some("five") == (tree.find(40) map { case x: (Int, String) => x._2 }))
-    assert(Some("one") == (tree.find(50) map { case x: (Int, String) => x._2 }))
-    assert(Some("one b") == (tree.find(55) map { case x: (Int, String) => x._2 }))
-    assert(Some("eight") == (tree.find(59) map { case x: (Int, String) => x._2 }))
-    assert(Some("seven") == (tree.find(60) map { case x: (Int, String) => x._2 }))
-    assert(Some("six") == (tree.find(70) map { case x: (Int, String) => x._2 }))
+    assert(Some("three") == (tree.find(10) map { case x: (Int, _) => x._2 }))
+    assert(Some("three b") == (tree.find(11) map { case x: (Int, _) => x._2 }))
+    assert(Some("two") == (tree.find(20) map { case x: (Int, _) => x._2 }))
+    assert(Some("four") == (tree.find(30) map { case x: (Int, _) => x._2 }))
+    assert(Some("five") == (tree.find(40) map { case x: (Int, _) => x._2 }))
+    assert(Some("one") == (tree.find(50) map { case x: (Int, _) => x._2 }))
+    assert(Some("one b") == (tree.find(55) map { case x: (Int, _) => x._2 }))
+    assert(Some("eight") == (tree.find(59) map { case x: (Int, _) => x._2 }))
+    assert(Some("seven") == (tree.find(60) map { case x: (Int, _) => x._2 }))
+    assert(Some("six") == (tree.find(70) map { case x: (Int, _) => x._2 }))
 
     val it = tree.iterator
     assert((11, "three b") == it.next())
