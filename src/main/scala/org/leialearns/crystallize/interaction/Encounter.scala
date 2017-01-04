@@ -40,7 +40,7 @@ class Encounter(_crystal: Crystal) extends Logging {
         return
       }
 
-      var nodeOption = findNode(crystal.head.get(), state.reverse)
+      val nodeOption = findNode(crystal.head.get(), state.reverse)
       trace(s"Node option: $nodeOption")
       nodeOption match {
         case Some(node) =>
@@ -131,7 +131,7 @@ class Encounter(_crystal: Crystal) extends Logging {
   def updateNode(node: Node, observation: Item): Unit = {
     val observedLocation = Observed.createObservedLocation(node)
     trace(s"Update node: $node, $observation")
-    crystal.update(observedLocation, new ItemCounts(), (itemCounts: ItemCounts) => itemCounts.increment(observation, 1l)) onSuccess {
+    crystal.update(observedLocation, new ItemCounts(), (_: ItemCounts).increment(observation, 1l)) onSuccess {
       case state => state.get(observedLocation) onSuccess {
         case itemCounts => trace(s"Update result: $observedLocation[$observation] -> ${itemCounts.get(observation)} (total: ${itemCounts.total}})");
       }

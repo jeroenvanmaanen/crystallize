@@ -58,9 +58,7 @@ class TreeNodeIteratorState[A](parentOption: Option[TreeNodeIteratorState[A]], n
   def getParentOption = parentOption
   def getNode = node
   def getPosition = position
-  override def toString: String = {
-    s"[TreeIteratorNodeState:${getParentOption map { case _ => "!" }}:$getNode:$getPosition]"
-  }
+  override def toString: String = s"[TreeIteratorNodeState:${getParentOption map Function.const("!")}:$getNode:$getPosition]"
 }
 
 sealed abstract class Position

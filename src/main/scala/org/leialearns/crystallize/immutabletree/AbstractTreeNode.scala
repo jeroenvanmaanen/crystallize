@@ -86,7 +86,7 @@ abstract sealed class AbstractTreeNode[A] {
   def getBucket: AbstractTreeNode[A]
   def getItems: Seq[A]
   def getItem: A
-  def getAllItems: Seq[A] = getItems ++ ((getLeftNode :: getRightNode :: Nil) flatMap { case n => getAllItems })
+  def getAllItems: Seq[A] = { getItems ++ ((getLeftNode :: getRightNode :: Nil).flatten flatMap (_.getAllItems)) }
   def getRightNode: Option[AbstractTreeNode[A]]
   def getOrientation: Orientation = RIGHT
   def getOffset: Offset = ZERO

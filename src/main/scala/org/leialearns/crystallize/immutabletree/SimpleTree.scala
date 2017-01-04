@@ -8,7 +8,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[AbstractTreeNode[A]], keyExt
     find(rootOption, key)
   }
   def find(nodeOption: Option[AbstractTreeNode[A]], key: K): Option[A] = {
-    nodeOption flatMap { case node => find(node, key) }
+    nodeOption flatMap (find(_, key))
   }
   def find(node: AbstractTreeNode[A], key: K): Option[A] = {
     val untwisted = node.untwist
@@ -22,7 +22,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[AbstractTreeNode[A]], keyExt
     }
   }
   def lookup(nodeOption: Option[AbstractTreeNode[A]], key: K): Option[A] = {
-    nodeOption flatMap { case node => lookup(node, key) }
+    nodeOption flatMap (lookup(_, key))
   }
   def lookup(node: AbstractTreeNode[A], key: K): Option[A] = {
     val bucketResult = node.getBucket match {
@@ -76,43 +76,40 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[AbstractTreeNode[A]], keyExt
     } else {
       val untwistedBucket = untwisted.getBucket
       val replaced = replace(item, untwistedBucket)
+      trace(s"Replaced: $replaced")
       val newBucket = if (replaced eq untwistedBucket) createNode(None, item, Some(replaced), ()) else replaced
       createNode(untwisted.getLeftNode, newBucket, untwisted.getRightNode, ())
     }
   }
   protected def replace(item: A, treeNodeOption: Option[AbstractTreeNode[A]]): Option[AbstractTreeNode[A]] = {
-    treeNodeOption map { case treeNode => replace(item, treeNode) }
+    treeNodeOption map (replace(item, _))
   }
   protected def replace(item: A, treeNode: AbstractTreeNode[A]): AbstractTreeNode[A] = {
-    val leftNodeOption = replace(item, treeNode.getLeftNode)
-    val rightNodeOption = replace(item, treeNode.getRightNode)
+    val oldLeftNodeOption = treeNode.getLeftNode
+    val oldRightNodeOption = treeNode.getRightNode
+    val newLeftNodeOption = replace(item, oldLeftNodeOption)
+    val newRightNodeOption = replace(item, oldRightNodeOption)
     val oldBucket = treeNode.getBucket
     oldBucket match {
       case ItemNode(nodeItem) =>
-        if (item.equals(item, nodeItem)) {
-          createNode(leftNodeOption, item, rightNodeOption, ())
+        val oldKey = keyExtractor.extract(nodeItem)
+        val newKey = keyExtractor.extract(item)
+        if (keyKind.equals(newKey, oldKey)) {
+          createNode(newLeftNodeOption, item, newRightNodeOption, ())
         } else {
-          if (differ(leftNodeOption, treeNode.getLeftNode) || differ(rightNodeOption, treeNode.getRightNode)) {
-            createNode(leftNodeOption, nodeItem, rightNodeOption, ())
-          } else {
+          if (isSame(newLeftNodeOption, oldLeftNodeOption) && isSame(newRightNodeOption, oldRightNodeOption)) {
             treeNode
+          } else {
+            createNode(newLeftNodeOption, nodeItem, newRightNodeOption, ())
           }
         }
       case _ =>
         val newBucket = replace(item, oldBucket)
-        if (differ(leftNodeOption, treeNode.getLeftNode) || (newBucket ne oldBucket) || differ(rightNodeOption, treeNode.getRightNode)) {
-          createNode(leftNodeOption, newBucket, rightNodeOption, ())
-        } else {
+        if (isSame(newLeftNodeOption, oldLeftNodeOption) && (newBucket eq oldBucket) && isSame(newRightNodeOption, oldRightNodeOption)) {
           treeNode
+        } else {
+          createNode(newLeftNodeOption, newBucket, newRightNodeOption, ())
         }
-    }
-  }
-  protected def differ[X <: AnyRef](one: Option[X], other: Option[X]): Boolean = {
-    (one, other) match {
-      case (None, None) => false
-      case (None, Some(_)) => true
-      case (Some(_), None) => true
-      case (Some(a), Some(b)) => a eq b
     }
   }
 
@@ -122,11 +119,11 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[AbstractTreeNode[A]], keyExt
     val order = keyKind.compare(key, nodeKey)
     if (order < 0) {
       val oldLeftNodeOption = untwisted.getLeftNode
-      val newLeftNodeOption = oldLeftNodeOption flatMap { case leftNode => remove(key, leftNode) }
+      val newLeftNodeOption = oldLeftNodeOption flatMap (remove(key, _))
       Some(if (isSame(oldLeftNodeOption, newLeftNodeOption)) node else createNode(newLeftNodeOption, untwisted.getBucket, untwisted.getRightNode, ()))
     } else if (order > 0) {
       val oldRightNodeOption = untwisted.getRightNode
-      val newRightNodeOption = oldRightNodeOption flatMap { case leftNode => remove(key, leftNode) }
+      val newRightNodeOption = oldRightNodeOption flatMap (remove(key, _))
       Some(if (isSame(oldRightNodeOption, newRightNodeOption)) node else createNode(untwisted.getLeftNode, untwisted.getBucket, newRightNodeOption, ()))
     } else {
       bucketRemove(key, node)
@@ -159,11 +156,11 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[AbstractTreeNode[A]], keyExt
       val oldBucket = untwisted.getBucket
       val oldRightNode = untwisted.getRightNode
       if (order == 0) {
-        val newLeftNode = oldLeftNode flatMap { case leftNode => bucketRemove(key, leftNode) }
+        val newLeftNode = oldLeftNode flatMap (bucketRemove(key, _))
         if (isSame(newLeftNode, oldLeftNode)) {
           val newBucketOption = remove(key, oldBucket)
           if (isSame(newBucketOption, Some(oldBucket))) {
-            val newRightNode = oldRightNode flatMap { case rightNode => bucketRemove(key, rightNode) }
+            val newRightNode = oldRightNode flatMap (bucketRemove(key, _))
             if (isSame(newRightNode, oldRightNode)) {
               Some(node)
             } else {
@@ -215,7 +212,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[AbstractTreeNode[A]], keyExt
     }
   }
 
-  def isSame[X <: AnyRef](aOption: Option[X], bOption: Option[X]): Boolean = {
+  protected def isSame[X <: AnyRef](aOption: Option[X], bOption: Option[X]): Boolean = {
     (aOption, bOption) match {
       case (Some(a), Some(b)) => a eq b
       case (None, None) => true

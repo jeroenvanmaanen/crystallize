@@ -69,22 +69,16 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
     logger.debug(s"Time t0: ${t0.ordinal}")
     expectNoValue(t0.get(justLeftExtensible))
     val justLeftObserved = Observed.createObservedLocation(justLeftNode)
-    whenReady(crystal.update(justLeftObserved, new ItemCounts(), (counts: ItemCounts) => counts.increment(dark, 9l))) {
-      state => state shouldBe a [State[_]]
-    }
+    whenReady(crystal.update(justLeftObserved, new ItemCounts(), (_: ItemCounts).increment(dark, 9l))) (_ shouldBe a [State[_]])
     val t1 = crystal.head.get()
     logger.debug(s"Time t1: ${t1.ordinal}")
     expectNoValue(t1.get(justLeftExtensible))
-    whenReady(crystal.update(justLeftObserved, new ItemCounts(), (counts: ItemCounts) => counts.increment(light, 4l))) {
-      state => state shouldBe a [State[_]]
-    }
+    whenReady(crystal.update(justLeftObserved, new ItemCounts(), (_: ItemCounts).increment(light, 4l))) (_ shouldBe a [State[_]])
     val t2 = crystal.head.get()
     logger.debug(s"Time t2: ${t2.ordinal}")
     expectValue(Marker.MARKER, t2.get(justLeftExtensible))
 
-    whenReady(crystal.update(justLeft, "hi", (_: String) => "hi")) {
-      state => state shouldBe a [State[_]]
-    }
+    whenReady(crystal.update(justLeft, "hi", Function.const("hi"))) (_ shouldBe a [State[_]])
     val t3 = crystal.head.get()
     expectValue(Marker.MARKER, t3.get(justLeftExtensible))
     expectValue(1l, t3.get(MaxDepth.MAX_DEPTH_LOCATION)) // Computes unknown value
@@ -94,9 +88,7 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
       logger.debug(line)
     }
 
-    whenReady(crystal.update(justLeft, "start", (s: String) => s + ".")) {
-      state => state shouldBe a [State[_]]
-    }
+    whenReady(crystal.update(justLeft, "start", (_: String) + ".")) (_ shouldBe a [State[_]])
     val t4 = crystal.head.get()
     expectValue(1l, t4.get(MaxDepth.MAX_DEPTH_LOCATION))
 
@@ -106,10 +98,10 @@ class TestCrystal extends FunSuite with ScalaFutures with Matchers with LoggingC
   }
 
   def expectValue[T](expected: T, future: Future[T]): Unit = {
-    whenReady(future) {result => result should equal (expected) }
+    whenReady(future) (_ should equal (expected) )
   }
 
   def expectNoValue(future: Future[_]): Unit = {
-    whenReady(future.failed) { exception => exception shouldBe a [NoSuchElementException] }
+    whenReady(future.failed) (_ shouldBe a [NoSuchElementException] )
   }
 }

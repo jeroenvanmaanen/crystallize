@@ -15,7 +15,7 @@ object Dump {
   }
 
   def dumpIterator[T](prefix: String, open: String, close: String, iterator: Iterator[T]): Iterator[String] = {
-    var delimited = Seq[Any](open).iterator ++ (iterator map { case x => Some(x) }) ++ Seq[Any](close)
+    val delimited = Seq[Any](open).iterator ++ (iterator map (Some(_))) ++ Seq[Any](close)
     val subPrefix = prefix + "  "
     delimited flatMap {
       case Some(x) => dump(subPrefix, x)

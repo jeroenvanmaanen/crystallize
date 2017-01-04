@@ -32,7 +32,7 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
   }, _location :: Nil)
 
   private def extendRecompute(oldRecompute: Map[Location[_],immutable.List[Location[_]]], locations: Seq[Location[_]]): Map[Location[_],immutable.List[Location[_]]] = {
-    val nonMembers = locations filter {case x => !oldRecompute.contains(x)}
+    val nonMembers = locations filter (!oldRecompute.contains(_))
     val nextLocations: Seq[(DerivedLocation[_],immutable.List[Location[_]])] = nonMembers flatMap {
       case nonMember => for (x <- propagateRecompute(nonMember)) yield (x, addCause(nonMember, oldRecompute.get(x)))
     }
@@ -40,13 +40,13 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
       oldRecompute
     } else {
       val nextRecompute = oldRecompute ++ nextLocations
-      extendRecompute(nextRecompute, nextLocations map {case (x, y) => x})
+      extendRecompute(nextRecompute, nextLocations map (_._1))
     }
   }
 
   private def cleanRecompute(): Map[Location[_],immutable.List[Location[_]]] = {
     val derivedSnapshot = derived.get()
-    recompute filterKeys {case key => !derivedSnapshot.contains(key)}
+    recompute filterKeys (!derivedSnapshot.contains(_))
   }
 
   private def addCause(location: Location[_], causeListOption: Option[immutable.List[Location[_]]]): immutable.List[Location[_]] = {
@@ -57,7 +57,7 @@ class State[A <: Any](_previousStateOption: Option[State[_]], _name: String, _cr
   }
 
   private def propagateRecompute(location: Location[_]): Seq[DerivedLocation[_]] = {
-    crystal.propagators flatMap ((propagator) => propagator.propagate(location, this))
+    crystal.propagators flatMap (_.propagate(location, this))
   }
 
   def put[T](location: AssignedLocation[T], value: T): State[T] = {

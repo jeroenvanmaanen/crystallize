@@ -6,36 +6,33 @@ class SimpleMap[K,V](rootOption: Option[AbstractTreeNode[(K,_)]], keyKind: KeyKi
   def this() = this(None)
 
   def get(key: K): Option[V] = {
-    rootOption match {
-      case Some(root) => lookup(root, key) map { case entry => entry._2.asInstanceOf[V] }
-      case _ => None
-    }
+    (rootOption flatMap (lookup(_,key))) map (_._2.asInstanceOf[V])
   }
 
   def + [V1 >: V](pair: (K, V1)): SimpleMap[K,V1] = {
-    rootOption match {
-      case Some(root) =>
-        val newRoot = insert(pair, getKeyExtractor.extract(pair), root)
-        new SimpleMap[K,V1](Some(newRoot))
-      case _ =>
-        new SimpleMap[K,V1](Some(createItemNode((), pair)))
+    val newRoot = (rootOption map ((root) => {
+      insert(pair, getKeyExtractor.extract(pair), root)
+    })).getOrElse(createItemNode((), pair))
+    val newRootOption = Some(newRoot)
+    if (isSame(newRootOption, rootOption)) {
+      this.asInstanceOf[SimpleMap[K,V1]]
+    } else {
+      new SimpleMap[K,V1](newRootOption)
     }
   }
 
   def - (key: K): SimpleMap[K,V] = {
-    rootOption match {
-      case Some(root) =>
-        val newRootOption = remove(key, root)
-        if (isSame(newRootOption, rootOption)) {
-          this
-        } else {
-          new SimpleMap[K,V](newRootOption)
-        }
-      case _ => this
-    }
+    (rootOption flatMap ((root) => {
+      val newRootOption = remove(key, root)
+      if (isSame(newRootOption, rootOption)) {
+        None
+      } else {
+        Some(new SimpleMap[K,V](newRootOption))
+      }
+    })).getOrElse(this)
   }
 
   override def iterator: Iterator[(K,V)] = {
-    new TreeNodeIterator(rootOption) map { case (k: Any, v: Any) => (k.asInstanceOf[K], v.asInstanceOf[V]) }
+    new TreeNodeIterator(rootOption) map ((p: (K,_)) => (p._1, p._2.asInstanceOf[V]))
   }
 }
