@@ -22,11 +22,11 @@ class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends
         case TreeNodeIteratorInnerState(_, stateNode, statePosition) =>
           val nextStateProperties: (Option[Either[A,T]], Position) =
             if (statePosition == BEFORE_LEFT) {
-              (stateNode.getLeftNode map (Right(_)), BEFORE_BUCKET)
+              (stateNode.getLeftNode, BEFORE_BUCKET)
             } else if (statePosition == BEFORE_BUCKET) {
               (Some(stateNode.getMiddle), BEFORE_RIGHT)
             } else if (statePosition == BEFORE_RIGHT) {
-              (stateNode.getRightNode map (Right(_)), DONE)
+              (stateNode.getRightNode, DONE)
             } else {
               (None, DONE)
             }
@@ -68,7 +68,7 @@ class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends
 sealed abstract class TreeNodeIteratorState[A,T <: TreeNodeTrait[A,T]](parentOption: Option[TreeNodeIteratorInnerState[A,T]], position: Position) {
   def getParentOption = parentOption
   def getPosition = position
-  def getRightNode: Option[TreeNodeTrait[A,T]]
+  def getRightNode: Option[Either[A,TreeNodeTrait[A,T]]]
   def isInner: Boolean
 }
 case class TreeNodeIteratorInnerState[A,T <: TreeNodeTrait[A,T]](parentOption: Option[TreeNodeIteratorInnerState[A,T]], node: TreeNodeTrait[A,T], position: Position) extends TreeNodeIteratorState[A,T](parentOption, position) {

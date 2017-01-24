@@ -18,8 +18,8 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], middle: Either[String,Simple[String]], rightNodeOption: Option[Simple[String]]): Simple[String] = {
     val result = tree.createNode(leftNodeOption, middle, rightNodeOption, ())
     val untwisted = result.untwist
-    val untwistedLeftNode = untwisted.getLeftNode
-    val untwistedRightNode = untwisted.getRightNode
+    val untwistedLeftNode = untwisted.getLeftNode map ((either) => tree.asTree(either))
+    val untwistedRightNode = untwisted.getRightNode map ((either) => tree.asTree(either))
     assert(untwistedLeftNode == leftNodeOption)
     assert(untwistedRightNode == rightNodeOption)
     result

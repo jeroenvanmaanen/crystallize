@@ -6,9 +6,9 @@ import org.leialearns.crystallize.immutabletree.simple.{Simple, SimpleCases}
 class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Extractor[A,K], keyKind: KeyKind[K]) extends Tree[A, Unit, Simple[A]](rootOption, SimpleCases.nodeFactory[A]) with Logging {
   def getKeyExtractor = keyExtractor
   def find(key: K): Option[A] = {
-    find(rootOption, key)
+    find(rootOption map (Right(_)), key)
   }
-  def find(nodeOption: Option[Simple[A]], key: K): Option[A] = {
+  def find(nodeOption: Option[Either[A,Simple[A]]], key: K): Option[A] = {
     nodeOption flatMap (find(_, key))
   }
   def extractKey(bucket: Simple[A]): K = {
@@ -16,6 +16,12 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       case Left(item) => keyExtractor.extract(item)
       case Right(child) =>
         if (child eq bucket) throw new IllegalStateException("Non-item bucket is its own bucket") else extractKey(child)
+    }
+  }
+  def find(either: Either[A,Simple[A]], key: K): Option[A] = {
+    either match {
+      case Left(item) => lookup(item, key)
+      case Right(tree) => find(tree, key)
     }
   }
   def find(node: Simple[A], key: K): Option[A] = {
@@ -29,9 +35,16 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       lookup(untwisted, key)
     }
   }
-  def lookup(nodeOption: Option[Simple[A]], key: K): Option[A] = {
+  def lookup(nodeOption: Option[Either[A,Simple[A]]], key: K): Option[A] = {
     nodeOption flatMap (lookup(_, key))
   }
+  def lookup(either: Either[A,Simple[A]], key: K): Option[A] = {
+    either match {
+      case Left(item) => lookup(item, key)
+      case Right(tree) => lookup(tree, key)
+    }
+  }
+  def lookup(item: A, key: K): Option[A] = if (keyKind.equals(key, keyExtractor.extract(item))) Some(item) else None
   def lookup(node: Simple[A], key: K): Option[A] = {
     val bucketResult: (Option[A], Boolean) = node.getMiddle match {
       case Left(item) =>
@@ -70,31 +83,31 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     if (order < 0) {
       untwisted.getLeftNode match {
         case Some(leftNode) =>
-          val newLeftNode = insert(item, key, leftNode)
-          if (newLeftNode eq leftNode) treeNode else createNode(Some(newLeftNode), untwisted.getMiddle, untwisted.getRightNode, ())
-        case _ => createNode(Some(createNode(None, item, None, ())), untwisted.getMiddle, untwisted.getRightNode, ())
+          val newLeftNode = insert(item, key, asTree(leftNode))
+          if (newLeftNode eq leftNode) treeNode else createNode(Some(newLeftNode), untwisted.getMiddle, untwisted.getRightNode map asTree, ())
+        case _ => createNode(Some(createNode(None, item, None, ())), untwisted.getMiddle, untwisted.getRightNode map asTree, ())
       }
     } else if (order > 0) {
       untwisted.getRightNode match {
         case Some(rightNode) =>
-          val newRightNode = insert(item, key, rightNode)
-          if (newRightNode eq rightNode) treeNode else createNode(untwisted.getLeftNode, untwisted.getMiddle, Some(newRightNode), ())
-        case _ => createNode(untwisted.getLeftNode, untwisted.getMiddle, Some(createNode(None, item, None, ())), ())
+          val newRightNode = insert(item, key, asTree(rightNode))
+          if (newRightNode eq rightNode) treeNode else createNode(untwisted.getLeftNode map asTree, untwisted.getMiddle, Some(newRightNode), ())
+        case _ => createNode(untwisted.getLeftNode map asTree, untwisted.getMiddle, Some(createNode(None, item, None, ())), ())
       }
     } else {
       val untwistedBucket = untwisted.getBucket
       val replaced = replace(item, untwistedBucket)
       trace(s"Replaced: $replaced")
       val newBucket = if (replaced.isEmpty || isSame(replaced, untwistedBucket)) createNode(None, item, replaced, ()) else replaced.get
-      createNode(untwisted.getLeftNode, newBucket, untwisted.getRightNode, ())
+      createNode(untwisted.getLeftNode map asTree, newBucket, untwisted.getRightNode map asTree, ())
     }
   }
   protected def replace(item: A, treeNodeOption: Option[Simple[A]]): Option[Simple[A]] = {
     treeNodeOption map (replace(item, _))
   }
   protected def replace(item: A, treeNode: Simple[A]): Simple[A] = {
-    val oldLeftNodeOption = treeNode.getLeftNode
-    val oldRightNodeOption = treeNode.getRightNode
+    val oldLeftNodeOption = treeNode.getLeftNode map asTree
+    val oldRightNodeOption = treeNode.getRightNode map asTree
     val newLeftNodeOption = replace(item, oldLeftNodeOption)
     val newRightNodeOption = replace(item, oldRightNodeOption)
     treeNode.getMiddle match {
@@ -126,12 +139,12 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     val order = keyKind.compare(key, nodeKey)
     if (order < 0) {
       val oldLeftNodeOption = untwisted.getLeftNode
-      val newLeftNodeOption = oldLeftNodeOption flatMap (remove(key, _))
-      Some(if (isSame(oldLeftNodeOption, newLeftNodeOption)) node else createNode(newLeftNodeOption, untwisted.getMiddle, untwisted.getRightNode, ()))
+      val newLeftNodeOption = oldLeftNodeOption flatMap ((either) => remove(key, asTree(either)))
+      Some(if (isSame(oldLeftNodeOption, newLeftNodeOption)) node else createNode(newLeftNodeOption, untwisted.getMiddle, untwisted.getRightNode map asTree, ()))
     } else if (order > 0) {
       val oldRightNodeOption = untwisted.getRightNode
-      val newRightNodeOption = oldRightNodeOption flatMap (remove(key, _))
-      Some(if (isSame(oldRightNodeOption, newRightNodeOption)) node else createNode(untwisted.getLeftNode, untwisted.getMiddle, newRightNodeOption, ()))
+      val newRightNodeOption = oldRightNodeOption flatMap ((either) => remove(key, asTree(either)))
+      Some(if (isSame(oldRightNodeOption, newRightNodeOption)) node else createNode(untwisted.getLeftNode map asTree, untwisted.getMiddle, newRightNodeOption, ()))
     } else {
       bucketRemove(key, node)
     }
@@ -141,16 +154,16 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     val untwisted = node.untwist
     val nodeKey = extractKey(untwisted)
     if (keyKind.equals(key, nodeKey)) {
-      val leftNodeOption = untwisted.getLeftNode
-      val leftNodeEitherOption = leftNodeOption map (_.getMiddle)
-      val rightNodeOption = untwisted.getRightNode
-      (leftNodeEitherOption, rightNodeOption) match {
+      val leftNodeEitherOption = untwisted.getLeftNode
+      val leftNodeOption = leftNodeEitherOption map asTree
+      val rightNodeEitherOption = untwisted.getRightNode
+      (leftNodeEitherOption, rightNodeEitherOption) match {
         case (_, None) =>
           leftNodeOption
         case (None, _) =>
-          rightNodeOption
+          rightNodeEitherOption map asTree
         case (Some(Left(item)),_) =>
-          Some(createNode(None, item, untwisted.getRightNode, ()))
+          Some(createNode(None, item, untwisted.getRightNode map asTree, ()))
         case (_,Some(rightNode)) =>
           popItem(rightNode) match {
             case (item, newRightNodeOption) =>
@@ -160,9 +173,9 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       }
     } else {
       val order = keyKind.compare(key, nodeKey)
-      val oldLeftNode = untwisted.getLeftNode
+      val oldLeftNode = untwisted.getLeftNode map asTree
       val oldBucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem.get, None))
-      val oldRightNode = untwisted.getRightNode
+      val oldRightNode = untwisted.getRightNode map asTree
       if (order == 0) {
         val newLeftNode = oldLeftNode flatMap (bucketRemove(key, _))
         if (isSame(newLeftNode, oldLeftNode)) {
@@ -193,15 +206,21 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       }
     }
   }
-
+  def asTree(either: Either[A,Simple[A]]): Simple[A] = getNodeFactory.asTree(either)
+  def popItem(either: Either[A,Simple[A]]): (A, Option[Simple[A]]) = {
+    either match {
+      case Left(item) => (item, None)
+      case Right(node) => popItem(node)
+    }
+  }
   def popItem(node: Simple[A]): (A, Option[Simple[A]]) = {
     (node.getLeftNode, node.getMiddle, node.getRightNode) match {
       case (None, Left(item), None) => (item, None)
       case _ =>
         val untwisted = node.untwist
-        val leftNodeOption = untwisted.getLeftNode
+        val leftNodeOption = untwisted.getLeftNode map asTree
         val bucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem.get, None))
-        val rightNodeOption = untwisted.getRightNode
+        val rightNodeOption = untwisted.getRightNode map asTree
         (leftNodeOption, bucket) match {
           case (Some(leftNode), _) =>
             popItem(leftNode) match {
