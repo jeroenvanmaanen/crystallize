@@ -1,25 +1,27 @@
 package org.leialearns.crystallize.immutabletree
 
+import org.leialearns.crystallize.immutabletree.simple.Simple
 import org.leialearns.crystallize.util.LoggingConfiguration
 import org.scalatest.{Matchers, FunSuite}
 
 class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
-  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[AbstractTreeNode[String]], item: String, rightNodeOption: Option[AbstractTreeNode[String]]): AbstractTreeNode[String] = {
-    testCreateNode(tree, leftNodeOption, tree.createItemNode((), item), rightNodeOption)
+  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], item: String, rightNodeOption: Option[Simple[String]]): Simple[String] = {
+    val result = testCreateNode(tree, leftNodeOption, Left(item), rightNodeOption)
+    assert(result.untwist.getItem == Some(item))
+    result
   }
-  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[AbstractTreeNode[String]], bucket: AbstractTreeNode[String], rightNodeOption: Option[AbstractTreeNode[String]]): AbstractTreeNode[String] = {
-    val result = tree.createNode(leftNodeOption, bucket, rightNodeOption, ())
-    if (leftNodeOption.isEmpty && rightNodeOption.isEmpty) {
-      assert(result == bucket)
-    } else {
-      val untwisted = result.untwist
-      val untwistedLeftNode = untwisted.getLeftNode
-      val untwistedBucket = untwisted.getBucket
-      val untwistedRightNode = untwisted.getRightNode
-      assert(untwistedLeftNode == leftNodeOption)
-      assert(untwistedBucket == bucket)
-      assert(untwistedRightNode == rightNodeOption)
-    }
+  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], bucket: Simple[String], rightNodeOption: Option[Simple[String]]): Simple[String] = {
+    val result = testCreateNode(tree, leftNodeOption, Right(bucket), rightNodeOption)
+    assert(result.untwist.getBucket == Some(bucket))
+    result
+  }
+  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], middle: Either[String,Simple[String]], rightNodeOption: Option[Simple[String]]): Simple[String] = {
+    val result = tree.createNode(leftNodeOption, middle, rightNodeOption, ())
+    val untwisted = result.untwist
+    val untwistedLeftNode = untwisted.getLeftNode
+    val untwistedRightNode = untwisted.getRightNode
+    assert(untwistedLeftNode == leftNodeOption)
+    assert(untwistedRightNode == rightNodeOption)
     result
   }
 

@@ -2,72 +2,53 @@ package org.leialearns.crystallize.immutabletree
 
 import grizzled.slf4j.Logging
 
-import collection.immutable.Seq
+trait NodeFactory[A,T <: TreeNodeTrait[A,T]] {
+  def createNode(leftNodeOption: Option[T], middle: Either[A,T], rightNodeOption: Option[T]): T
+  def createNode(leftNodeOption: Option[T], bucket: T, rightNodeOption: Option[T]): T
+  def createNode(leftNodeOption: Option[T], item: A, rightNodeOption: Option[T]): T
+}
 
-abstract class Tree[A, C](_rootOption: Option[AbstractTreeNode[A]]) extends Logging {
-  def getRoot: Option[AbstractTreeNode[A]] = _rootOption
-  def createNode(leftNodeOption: Option[AbstractTreeNode[A]], bucket: AbstractTreeNode[A], rightNodeOption: Option[AbstractTreeNode[A]], context: C): AbstractTreeNode[A] = {
-    val result = (leftNodeOption, bucket, rightNodeOption) match {
-      case (None, ItemNode(item), None) => bucket
-      case (_, ItemNode(item), _) => createNode(leftNodeOption, item, rightNodeOption, context)
-      case _ =>
-        (leftNodeOption, rightNodeOption) match {
-          case (Some(ItemNode(leftItem)), Some(ItemNode(rightItem))) => createItemBucketItemNode(context, RIGHT, ZERO, leftItem, bucket, rightItem)
-          case (None, Some(ItemNode(rightItem))) => createBucketItemNode(context, RIGHT, ZERO, bucket, rightItem)
-          case (Some(ItemNode(leftItem)), None) => createBucketItemNode(context, LEFT, ZERO, bucket, leftItem)
-          case (Some(leftNode), Some(ItemNode(rightItem))) => createSubtreeBucketItemNode(context, RIGHT, ZERO, leftNode, bucket, rightItem)
-          case (Some(ItemNode(leftItem)), Some(rightNode)) => createSubtreeBucketItemNode(context, LEFT, ZERO, rightNode, bucket, leftItem)
-          case (Some(leftNode), Some(rightNode)) => createSubtreeBucketSubtreeNode(context, leftNode, bucket, rightNode)
-          case (Some(leftNode), None) => createBucketSubtreeNode(context, ONE, leftNode, bucket)
-          case (None, Some(rightNode)) => createBucketSubtreeNode(context, ZERO, bucket, rightNode)
-          case _ => bucket
-        }
-    }
+abstract class Tree[A, C, T <: TreeNodeTrait[A,T]](_rootOption: Option[T], _nodeFactory: NodeFactory[A, T]) extends Logging {
+  def getNodeFactory: NodeFactory[A,T] = _nodeFactory
+  def getRoot: Option[T] = _rootOption
+  def createNode(leftNodeOption: Option[T], middle: Either[A,T], rightNodeOption: Option[T], context: C): T = {
+    val result = getNodeFactory.createNode(leftNodeOption, middle, rightNodeOption)
     trace(s"Created node: ${dump(result, Nil)}")
     result
   }
-  def createNode(leftNodeOption: Option[AbstractTreeNode[A]], item: A, rightNodeOption: Option[AbstractTreeNode[A]], context: C): AbstractTreeNode[A] = {
-    val result = (leftNodeOption, rightNodeOption) match {
-      case (Some(ItemNode(leftItem)), Some(ItemNode(rightItem))) => createItemItemItemNode(context, leftItem, item, rightItem)
-      case (None, Some(ItemNode(rightItem))) => createItemItemNode(context, ZERO, item, rightItem)
-      case (Some(ItemNode(leftItem)), None) => createItemItemNode(context, ONE, leftItem, item)
-      case (Some(leftNode), Some(ItemNode(rightItem))) => createItemBucketItemNode(context, RIGHT, ONE, rightItem, leftNode, item)
-      case (Some(ItemNode(leftItem)), Some(rightNode)) => createItemBucketItemNode(context, LEFT, ONE, leftItem, rightNode, item)
-      case (Some(leftNode), Some(rightNode)) => createSubtreeBucketItemNode(context, LEFT, ONE, leftNode, rightNode, item)
-      case (Some(leftNode), None) => createBucketItemNode(context, RIGHT, ONE, leftNode, item)
-      case (None, Some(rightNode)) => createBucketItemNode(context, LEFT, ONE, rightNode, item)
-      case _ => createItemNode(context, item)
-    }
+  def createNode(leftNodeOption: Option[T], bucket: T, rightNodeOption: Option[T], context: C): T = {
+    val result = getNodeFactory.createNode(leftNodeOption, bucket, rightNodeOption)
+    trace(s"Created node: ${dump(result, Nil)}")
+    result
+  }
+  def createNode(leftNodeOption: Option[T], item: A, rightNodeOption: Option[T], context: C): T = {
+    val result: T = getNodeFactory.createNode(leftNodeOption, item, rightNodeOption)
     trace(s"Created item node: ${dump(result, Nil)}")
     result
   }
-  def createItemNode(context: C, item: A): ItemNode[A] = new ItemNode[A](item)
-  def createItemItemNode(context: C, offset: Offset, item: A, right: A) = new ItemItemNode[A](offset, item, right)
-  def createBucketItemNode(context: C, orientation: Orientation, offset: Offset, bucket: AbstractTreeNode[A], right: A) = new BucketItemNode[A](orientation, offset, bucket, right)
-  def createBucketSubtreeNode(context: C, offset: Offset, bucket: AbstractTreeNode[A], right: AbstractTreeNode[A]) = new BucketSubtreeNode[A](offset, bucket, right)
-  def createItemItemItemNode(context: C, left: A, item: A, right: A) = new ItemItemItemNode[A](left, item, right)
-  def createItemBucketItemNode(context: C, orientation: Orientation, offset: Offset, left: A, bucket: AbstractTreeNode[A], right: A) = new ItemBucketItemNode[A](orientation, offset, left, bucket, right)
-  def createSubtreeBucketItemNode(context: C, orientation: Orientation, offset: Offset, left: AbstractTreeNode[A], bucket: AbstractTreeNode[A], right: A) = new SubtreeBucketItemNode[A](orientation, offset, left, bucket, right)
-  def createSubtreeBucketSubtreeNode(context: C, left: AbstractTreeNode[A], bucket: AbstractTreeNode[A], right: AbstractTreeNode[A]) = new SubtreeBucketSubtreeNode[A](left, bucket, right)
-  def insert(item: A): Tree[A, C]
+  def createItemNode(context: C, item: A): T = {
+    createNode(None, item, None, context)
+  }
+  def insert(item: A): Tree[A, C, T]
   def dump: String = {
     s"<t>${dump(getRoot, Nil)}</t>"
   }
-  def dump(nodeOption: Option[AbstractTreeNode[A]], rootPath: List[AnyRef]): String = {
+  def dump(nodeOption: Option[T], rootPath: List[AnyRef]): String = {
     nodeOption match {
       case Some(node) => dump(node, rootPath)
       case _ => "<n/>"
     }
   }
-  def dump(node: AbstractTreeNode[A], rootPath: List[AnyRef]): String = {
+  def dump(node: T, rootPath: List[AnyRef]): String = {
     if (rootPath contains node) {
       s"<!-- ${node.toString} -->"
     } else {
       val subpath = node :: rootPath
       val untwisted = node.untwist
-      node match {
-        case ItemNode(item) => item.toString
-        case _ => s"<n>${dump(untwisted.getLeftNode, subpath)}<i>${dump(untwisted.getBucket, subpath)}</i>${dump(untwisted.getRightNode, subpath)}</n>"
+      (untwisted.getLeftNode, untwisted.getMiddle, untwisted.getRightNode) match {
+        case (None, Left(item), None) => item.toString
+        case (left, Left(item), right) => s"<n>${dump(left, subpath)}<i>$item</i>${dump(right, subpath)}</n>"
+        case (left, Right(bucket), right) => s"<n>${dump(left, subpath)}<i>${dump(bucket, subpath)}</i>${dump(right, subpath)}</n>"
       }
     }
   }
@@ -81,106 +62,183 @@ abstract sealed class Orientation {}
 case object RIGHT extends Orientation {}
 case object LEFT extends Orientation {}
 
-abstract sealed class AbstractTreeNode[A] {
-  def getLeftNode: Option[AbstractTreeNode[A]]
-  def getBucket: AbstractTreeNode[A]
-  def getItems: Seq[A]
-  def getItem: A
-  def getAllItems: Seq[A] = { getItems ++ ((getLeftNode :: getRightNode :: Nil).flatten flatMap (_.getAllItems)) }
-  def getRightNode: Option[AbstractTreeNode[A]]
+trait TreeNodeTrait[A, T <: TreeNodeTrait[A,T]] {
+  def getLeftNode: Option[T]
+  def getMiddle: Either[A,T]
+  def getBucket: Option[T]
+  def getItem: Option[A]
+  def getItems: Iterable[A]
+  def getAllItems: Iterable[A] = { getItems ++ ((getLeftNode :: getRightNode :: Nil).flatten flatMap (_.getAllItems)) }
+  def getRightNode: Option[T]
   def getOrientation: Orientation = RIGHT
   def getOffset: Offset = ZERO
-  def untwist: AbstractTreeNode[A] = {
-    val shifted = if (getOffset == ONE) new ShiftedNode[A](this) else this
-    if (getOrientation == LEFT) new MirroredNode[A](shifted) else shifted
+  def untwist: T = {
+    this.asInstanceOf[T]
   }
 }
 
+abstract sealed class AbstractTreeNode[A,T <: TreeNodeTrait[A,T]] extends TreeNodeTrait[A,T] {
+}
+
 // No branches
-case class ItemNode[A](item: A) extends AbstractTreeNode[A] {
+case class ItemNode[A,T <: TreeNodeTrait[A,T]](item: A) extends TreeNodeTrait[A,T] {
   override def getLeftNode = None
-  override def getBucket = this
-  override def getItem = item
+  override def getMiddle = Right(this.asInstanceOf[T])
+  override def getBucket = Some(this.asInstanceOf[T])
+  override def getItem = Some(item)
   override def getItems = item :: Nil
   override def getRightNode = None
 }
 
-// Right branch
-case class ItemItemNode[A](offset: Offset, item: A, right: A) extends AbstractTreeNode[A] {
-  override def getLeftNode = None
-  override def getBucket = new ItemNode[A](item)
-  override def getItem = item
-  override def getItems = item :: Nil
-  override def getRightNode = Some(new ItemNode[A](right))
-  override def getOffset = offset
-}
-case class BucketItemNode[A](orientation: Orientation, offset: Offset, item: AbstractTreeNode[A], right: A) extends AbstractTreeNode[A] {
-  override def getLeftNode = None
-  override def getBucket = item
-  override def getItem = item.getItem
-  override def getItems = item.getAllItems
-  override def getRightNode = Some(new ItemNode[A](right))
-  override def getOrientation = orientation
-  override def getOffset = offset
-}
-case class BucketSubtreeNode[A](offset: Offset, item: AbstractTreeNode[A], right: AbstractTreeNode[A]) extends AbstractTreeNode[A] {
-  override def getLeftNode = None
-  override def getBucket = item
-  override def getItem = item.getItem
-  override def getItems = item.getAllItems
-  override def getRightNode = Some(right)
-  override def getOffset = offset
-}
-
-// Both branches
-case class ItemItemItemNode[A](left: A, item: A, right: A) extends AbstractTreeNode[A] {
-  override def getLeftNode = Some(new ItemNode[A](left))
-  override def getBucket = new ItemNode[A](item)
-  override def getItem = item
-  override def getItems = item :: Nil
-  override def getRightNode = Some(new ItemNode[A](right))
-}
-case class ItemBucketItemNode[A](orientation: Orientation, offset: Offset, left: A, item: AbstractTreeNode[A], right: A) extends AbstractTreeNode[A] {
-  override def getLeftNode = Some(new ItemNode[A](left))
-  override def getBucket = item
-  override def getItem = item.getItem
-  override def getItems = item.getAllItems
-  override def getRightNode = Some(new ItemNode[A](right))
-  override def getOrientation = orientation
-  override def getOffset = offset
-}
-case class SubtreeBucketItemNode[A](orientation: Orientation, offset: Offset, left: AbstractTreeNode[A], item: AbstractTreeNode[A], right: A) extends AbstractTreeNode[A] {
-  override def getLeftNode = Some(left)
-  override def getBucket = item
-  override def getItem = item.getItem
-  override def getItems = item.getAllItems
-  override def getRightNode = Some(new ItemNode[A](right))
-  override def getOrientation = orientation
-  override def getOffset = offset
-}
-case class SubtreeBucketSubtreeNode[A](left: AbstractTreeNode[A], item: AbstractTreeNode[A], right: AbstractTreeNode[A]) extends AbstractTreeNode[A] {
-  override def getLeftNode = Some(left)
-  override def getBucket = item
-  override def getItem = item.getItem
-  override def getItems = item.getAllItems
-  override def getRightNode = Some(right)
-}
-
-class ShiftedNode[A](node: AbstractTreeNode[A]) extends AbstractTreeNode[A] {
+class ShiftedNode[A,T <: TreeNodeTrait[A,T]](node: TreeNodeTrait[A,T]) extends TreeNodeTrait[A,T] {
   override def getOffset = ZERO
-  override def getLeftNode = Some(node.getBucket)
-  override def getBucket = node.getRightNode.get
-  override def getItem = getBucket.getItem
-  override def getItems = getBucket.getAllItems
+  override def getLeftNode = node.getBucket
+  override def getMiddle = Right(node.getRightNode.get)
+  override def getBucket = node.getRightNode
+  override def getItem = getBucket flatMap (_.getItem)
+  override def getItems = getBucket map (_.getAllItems) getOrElse Nil
   override def getRightNode = node.getLeftNode
   override def toString = s"ShiftedNode($node})"
 }
-class MirroredNode[A](node: AbstractTreeNode[A]) extends AbstractTreeNode[A] {
+class MirroredNode[A,T <: TreeNodeTrait[A,T]](node: TreeNodeTrait[A,T]) extends TreeNodeTrait[A,T] {
   override def getOrientation = RIGHT
   override def getLeftNode = node.getRightNode
+  override def getMiddle = node.getMiddle
   override def getBucket = node.getBucket
   override def getItem = node.getItem
   override def getItems = node.getAllItems
   override def getRightNode = node.getLeftNode
   override def toString = s"MirroredNode($node})"
+}
+
+trait SingleNodeTrait[M,A,T] {
+  def asTreeNode: M => Option[T]
+  def asItem: M => Option[A]
+}
+
+abstract class SingleNode[M,A,T <: TreeNodeTrait[A,T]](content: M) extends AbstractTreeNode[A,T] with SingleNodeTrait[M, A, T] {
+  override def getLeftNode = None
+  override def getMiddle = {
+    (getItem, getBucket) match {
+      case (Some(item), _) => Left(item)
+      case (_, Some(bucket)) => Right(bucket)
+      case _ => throw  new IllegalStateException(s"Node has neither Item nor Bucket: $this")
+    }
+  }
+  override def getBucket = asTreeNode(content)
+  override def getItem = asItem(content)
+  override def getItems = getBucket map (_.getAllItems) getOrElse Nil
+  override def getRightNode = None
+}
+trait Pair[L,R,A,T <: TreeNodeTrait[A,T]] extends TreeNodeTrait[A,T] {
+  def leftAsItem: L => Option[A]
+  def rightAsItem: R => Option[A]
+  def leftAsTreeNode: L => Option[T]
+  def rightAsTreeNode: R => Option[T]
+  def left: L
+  def getMiddle: Either[A,T] = {
+    (getItem, getBucket) match {
+      case (Some(item), _) => Left(item)
+      case (_, Some(bucket)) => Right(bucket)
+      case _ => throw new IllegalStateException(s"Node has neither Item nor Bucket: $this")
+    }
+  }
+  def right: R
+}
+abstract class PairNode[L,R,A,T <: TreeNodeTrait[A,T]](_left: L, _right: R) extends Pair[L,R,A,T] {
+  def left = _left
+  def right = _right
+}
+trait LeftNode[L,M,A,T <: TreeNodeTrait[A,T]] extends Pair[L,M,A,T] {
+  override def getLeftNode = leftAsTreeNode(left)
+  override def getBucket = rightAsTreeNode(right)
+  override def getItem = rightAsItem(right)
+  override def getItems = getBucket map (_.getAllItems) getOrElse Nil
+  override def getRightNode = None
+}
+trait RightNode[M,R,A,T <: TreeNodeTrait[A,T]] extends Pair[M,R,A,T] {
+  override def getLeftNode = None
+  override def getBucket = leftAsTreeNode(left)
+  override def getItem = leftAsItem(left)
+  override def getItems = getBucket map (_.getAllItems) getOrElse Nil
+  override def getRightNode = rightAsTreeNode(right)
+}
+
+trait BothNodesTrait[L,M,R,A,T <: TreeNodeTrait[A,T]] {
+  def asTreeNode: M => Option[T]
+  def asItem: M => Option[A]
+}
+abstract class BothNodes[L,M,R,A,T <: TreeNodeTrait[A,T]](_left: L, content: M, _right: R) extends PairNode[L,R,A,T](_left,_right) with BothNodesTrait[L,M,R,A,T] {
+  override def getLeftNode = leftAsTreeNode(left)
+  override def getMiddle = {
+    (getItem, getBucket) match {
+      case (Some(item), _) => Left(item)
+      case (_, Some(bucket)) => Right(bucket)
+      case _ => throw  new IllegalStateException(s"Node has neither Item nor Bucket: $this")
+    }
+  }
+  override def getBucket = asTreeNode(content)
+  override def getItem = asItem(content)
+  override def getItems = getBucket map (_.getAllItems) getOrElse Nil
+  override def getRightNode = rightAsTreeNode(right)
+}
+trait Bucket[A,T <: TreeNodeTrait[A,T]] extends SingleNodeTrait[T,A,T] {
+  override def asTreeNode = Some(_)
+  override def asItem = Function.const(None)
+}
+trait Item[A,T <: TreeNodeTrait[A,T]] extends SingleNodeTrait[A,A,T] {
+  override def asTreeNode = Function.const(None)
+  override def asItem = Some(_)
+}
+trait LeftTree[L,A,T <: TreeNodeTrait[A,T]] extends Pair[L,T,A,T] {
+  override def getLeftNode = leftAsTreeNode(left)
+  override def getBucket = rightAsTreeNode(right)
+  override def getItem = right.getItem
+  override def getItems = right.getAllItems
+  override def getRightNode = None
+}
+trait LeftItem[L,A,T <: TreeNodeTrait[A,T]] extends Pair[L,A,A,T] {
+  override def getLeftNode = leftAsTreeNode(left)
+  override def getBucket = rightAsTreeNode(right)
+  override def getItem = Some(right)
+  override def getItems = right :: Nil
+  override def getRightNode = None
+}
+trait RightTree[A,R,T <: TreeNodeTrait[A,T]] extends Pair[T,R,A,T] {
+  override def getLeftNode = None
+  override def getBucket = leftAsTreeNode(left)
+  override def getItem = left.getItem
+  override def getItems = left.getAllItems
+  override def getRightNode = rightAsTreeNode(right)
+}
+trait RightItem[A,R,T <: TreeNodeTrait[A,T]] extends Pair[A,R,A,T] {
+  override def getLeftNode = None
+  override def getBucket = leftAsTreeNode(left)
+  override def getItem = Some(left)
+  override def getItems = left :: Nil
+  override def getRightNode = rightAsTreeNode(right)
+}
+trait CoerceLeftTree[A,R,T <: TreeNodeTrait[A,T]] extends Pair[T,R,A,T] {
+  override def leftAsTreeNode = Some(_)
+  override def leftAsItem = Function.const(None)
+}
+trait CoerceLeftItem[A,R,T <: TreeNodeTrait[A,T]] extends Pair[A,R,A,T] {
+  override def leftAsTreeNode = Function.const(None)
+  override def leftAsItem = Some(_)
+}
+trait CoerceMiddleBucket[L,A,R,T <: TreeNodeTrait[A,T]] extends BothNodesTrait[L,T,R,A,T] {
+  override def asTreeNode = Some(_)
+  override def asItem = Function.const(None)
+}
+trait CoerceMiddleItem[L,A,R,T <: TreeNodeTrait[A,T]] extends BothNodesTrait[L,A,R,A,T] {
+  override def asTreeNode = Function.const(None)
+  override def asItem = Some(_)
+}
+trait CoerceRightTree[L,A,T <: TreeNodeTrait[A,T]] extends Pair[L,T,A,T] {
+  override def rightAsTreeNode = Some(_)
+  override def rightAsItem = Function.const(None)
+}
+trait CoerceRightItem[L,A,T <: TreeNodeTrait[A,T]] extends Pair[L,A,A,T] {
+  override def rightAsTreeNode = Function.const(None)
+  override def rightAsItem = Some(_)
 }

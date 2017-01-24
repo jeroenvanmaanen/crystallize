@@ -1,7 +1,9 @@
 package org.leialearns.crystallize.immutabletree
 
-class SimpleMap[K,V](rootOption: Option[AbstractTreeNode[(K,_)]], keyKind: KeyKind[K]) extends SimpleTree[(K,_),K](rootOption, new MapKeyExtractor[K], keyKind) with Map[K,V] {
-  def this(rootOption: Option[AbstractTreeNode[(K,_)]]) = this(rootOption, new MapKeyKind[K] {})
+import org.leialearns.crystallize.immutabletree.simple.Simple
+
+class SimpleMap[K,V](rootOption: Option[Simple[(K,_)]], keyKind: KeyKind[K]) extends SimpleTree[(K,_),K](rootOption, new MapKeyExtractor[K], keyKind) with Map[K,V] {
+  def this(rootOption: Option[Simple[(K,_)]]) = this(rootOption, new MapKeyKind[K] {})
   def this(keyKind: KeyKind[K]) = this(None, keyKind)
   def this() = this(None)
 
@@ -33,6 +35,6 @@ class SimpleMap[K,V](rootOption: Option[AbstractTreeNode[(K,_)]], keyKind: KeyKi
   }
 
   override def iterator: Iterator[(K,V)] = {
-    new TreeNodeIterator(rootOption) map ((p: (K,_)) => (p._1, p._2.asInstanceOf[V]))
+    new TreeNodeIterator[(K,_),Simple[(K,_)]](rootOption) map ((p: (K,_)) => (p._1, p._2.asInstanceOf[V]))
   }
 }
