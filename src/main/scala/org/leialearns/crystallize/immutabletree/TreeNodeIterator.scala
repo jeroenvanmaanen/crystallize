@@ -50,12 +50,9 @@ class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends
     }
     val result =
       state match {
-        case TreeNodeIteratorInnerState(_, node, _) =>
-          node.getItem.get
-        case TreeNodeIteratorLeafState(_, item, _) =>
-          item
-        case _ =>
-          throw new NoSuchElementException
+        case TreeNodeIteratorInnerState(_, node, _) => node.getItem
+        case TreeNodeIteratorLeafState(_, item, _) => item
+        case _ => throw new NoSuchElementException
       }
     state = state.getParentOption match {
       case Some(parent) => parent

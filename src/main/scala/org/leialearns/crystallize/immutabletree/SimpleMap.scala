@@ -8,7 +8,7 @@ class SimpleMap[K,V](rootOption: Option[Simple[(K,_)]], keyKind: KeyKind[K]) ext
   def this() = this(None)
 
   def get(key: K): Option[V] = {
-    (rootOption flatMap (lookup(_,key))) map (_._2.asInstanceOf[V])
+    (rootOption flatMap ((root) => find(Right(root), key))) map (_._2.asInstanceOf[V])
   }
 
   def + [V1 >: V](pair: (K, V1)): SimpleMap[K,V1] = {

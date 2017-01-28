@@ -32,36 +32,52 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     } else if (order > 0) {
       find(untwisted.getRightNode, key)
     } else {
-      lookup(untwisted, key)
+      lookup(Right(untwisted), key)
     }
   }
   def lookup(nodeOption: Option[Either[A,Simple[A]]], key: K): Option[A] = {
     nodeOption flatMap (lookup(_, key))
   }
+  def lookup(item: A, key: K): Option[A] = if (keyKind.equals(key, keyExtractor.extract(item))) Some(item) else None
   def lookup(either: Either[A,Simple[A]], key: K): Option[A] = {
     either match {
-      case Left(item) => lookup(item, key)
-      case Right(tree) => lookup(tree, key)
+      case Left(item) =>
+        lookup(item, key)
+      case Right(node) =>
+        val untwisted = node.untwist
+        if (keyKind.compare(keyExtractor.extract(untwisted.getItem), key) == 0) {
+          val middleItem = lookupInBucket(untwisted.getMiddle, key)
+          if (middleItem.isDefined) {
+            middleItem
+          } else {
+            val leftItem = untwisted.getLeftNode flatMap (lookup(_, key))
+            if (leftItem.isDefined) {
+              leftItem
+            } else {
+              untwisted.getRightNode flatMap (lookup(_, key))
+            }
+          }
+        } else {
+          None
+        }
     }
   }
-  def lookup(item: A, key: K): Option[A] = if (keyKind.equals(key, keyExtractor.extract(item))) Some(item) else None
-  def lookup(node: Simple[A], key: K): Option[A] = {
-    val bucketResult: (Option[A], Boolean) = node.getMiddle match {
+  def lookupInBucket(either: Either[A,Simple[A]], key: K): Option[A] = {
+    either match {
       case Left(item) =>
-        val equivalent = keyKind.compare(key, extractKey(node)) == 0
-        if (equivalent && keyKind.equals(key, extractKey(node))) (Some(item), false) else (None, equivalent)
-      case Right(bucket) => (lookup(bucket.untwist, key), false)
-    }
-    bucketResult match {
-      case (Some(item), _) => bucketResult._1
-      case (_, true) =>
-        val leftOption = lookup(node.getLeftNode, key)
-        leftOption match {
-          case Some(left) => leftOption
-          case _ =>
-            lookup(node.getRightNode, key)
+        lookup(item, key)
+      case Right(node) =>
+        val middleItem = lookupInBucket(node.getMiddle, key)
+        if (middleItem.isDefined) {
+          middleItem
+        } else {
+          val leftItem = node.getLeftNode flatMap (lookupInBucket(_,key))
+          if (leftItem.isDefined) {
+            leftItem
+          } else {
+            node.getRightNode flatMap (lookupInBucket(_,key))
+          }
         }
-      case _ => None
     }
   }
   def iterator: Iterator[A] = {
@@ -95,11 +111,27 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
         case _ => createNode(untwisted.getLeftNode map asTree, untwisted.getMiddle, Some(createNode(None, item, None, ())), ())
       }
     } else {
-      val untwistedBucket = untwisted.getBucket
-      val replaced = replace(item, untwistedBucket)
+      val untwistedMiddle = untwisted.getMiddle
+      val replaced = replace(item, untwisted.getMiddle)
       trace(s"Replaced: $replaced")
-      val newBucket = if (replaced.isEmpty || isSame(replaced, untwistedBucket)) createNode(None, item, replaced, ()) else replaced.get
-      createNode(untwisted.getLeftNode map asTree, newBucket, untwisted.getRightNode map asTree, ())
+      val newMiddle = if (isSame(replaced, untwistedMiddle)) Right(createNode(None, replaced, Some(createItemNode((), item)), ())) else replaced
+      trace(s"New middle: $newMiddle")
+      (untwisted.getLeftNode, untwisted.getRightNode) match {
+        case (None, None) => asTree(newMiddle)
+        case _ => createNode(untwisted.getLeftNode map asTree, newMiddle, untwisted.getRightNode map asTree, ())
+      }
+    }
+  }
+  protected def replace(newItem: A, middle: Either[A,Simple[A]]): Either[A,Simple[A]] = {
+    middle match {
+      case Left(item) =>
+        if (keyKind.equals(keyExtractor.extract(newItem), keyExtractor.extract(item))) {
+          Left(newItem)
+        } else {
+          Right(getNodeFactory.createNode(None, item, Some(getNodeFactory.createNode(None, newItem, None))))
+        }
+      case Right(tree) =>
+        Right(replace(newItem, tree))
     }
   }
   protected def replace(item: A, treeNodeOption: Option[Simple[A]]): Option[Simple[A]] = {
@@ -174,7 +206,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     } else {
       val order = keyKind.compare(key, nodeKey)
       val oldLeftNode = untwisted.getLeftNode map asTree
-      val oldBucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem.get, None))
+      val oldBucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem, None))
       val oldRightNode = untwisted.getRightNode map asTree
       if (order == 0) {
         val newLeftNode = oldLeftNode flatMap (bucketRemove(key, _))
@@ -219,7 +251,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       case _ =>
         val untwisted = node.untwist
         val leftNodeOption = untwisted.getLeftNode map asTree
-        val bucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem.get, None))
+        val bucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem, None))
         val rightNodeOption = untwisted.getRightNode map asTree
         (leftNodeOption, bucket) match {
           case (Some(leftNode), _) =>
@@ -243,6 +275,13 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     (aOption, bOption) match {
       case (Some(a), Some(b)) => a eq b
       case (None, None) => true
+      case _ => false
+    }
+  }
+  protected def isSame[X <: AnyRef, Y <: AnyRef](aOption: Either[X,Y], bOption: Either[X,Y]): Boolean = {
+    (aOption, bOption) match {
+      case (Left(a), Left(b)) => a eq b
+      case (Right(a), Right(b)) => a eq b
       case _ => false
     }
   }

@@ -7,7 +7,7 @@ import org.scalatest.{Matchers, FunSuite}
 class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], item: String, rightNodeOption: Option[Simple[String]]): Simple[String] = {
     val result = testCreateNode(tree, leftNodeOption, Left(item), rightNodeOption)
-    assert(result.untwist.getItem == Some(item))
+    assert(result.untwist.getItem == item)
     result
   }
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], bucket: Simple[String], rightNodeOption: Option[Simple[String]]): Simple[String] = {
@@ -80,9 +80,9 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
       .insert((59, "eight"))
     val treeDump = tree.dump
     info(s"Tree dump: $treeDump")
-    val leftDump = "<n><n><n/><i>(11,three b)</i>(10,three)</n><i>(20,two)</i><n><n/><i>(30,four)</i>(40,five)</n></n>"
-    val rightDump = "<n>(60,seven)<i>(70,six)</i><n/></n>"
-    assert(treeDump == s"<t><n>$leftDump<i><n><n/><i>(59,eight)</i><n><n/><i>(55,one b)</i>(50,one)</n></n></i>$rightDump</n></t>")
+    val leftDump = "<n><n><n/><i>(10,three)</i><n>(11,three b)</n></n><i>(20,two)</i><n><n/><i>(30,four)</i><n>(40,five)</n></n></n>"
+    val rightDump = "<n><n>(60,seven)</n><i>(70,six)</i><n/></n>"
+    assert(treeDump == s"<t><n>$leftDump<i><n><n/><i><n><n/><i>(50,one)</i><n>(55,one b)</n></n></i><n>(59,eight)</n></n></i>$rightDump</n></t>")
     assert(Some("three") == (tree.find(10) map (_._2)))
     assert(Some("three b") == (tree.find(11) map (_._2)))
     assert(Some("two") == (tree.find(20) map (_._2)))
@@ -95,21 +95,21 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
     assert(Some("six") == (tree.find(70) map (_._2)))
 
     val it = tree.iterator
-    assert((11, "three b") == it.next())
     assert((10, "three") == it.next())
+    assert((11, "three b") == it.next())
     assert((20, "two") == it.next())
     assert((30, "four") == it.next())
     assert((40, "five") == it.next())
-    assert((59, "eight") == it.next())
-    assert((55, "one b") == it.next())
     assert((50, "one") == it.next())
+    assert((55, "one b") == it.next())
+    assert((59, "eight") == it.next())
     assert((60, "seven") == it.next())
     assert((70, "six") == it.next())
 
     val it2 = tree.iterator
-    assert((11, "three b") == it2.next())
-    assert(it2.hasNext)
     assert((10, "three") == it2.next())
+    assert(it2.hasNext)
+    assert((11, "three b") == it2.next())
     assert(it2.hasNext)
     assert((20, "two") == it2.next())
     assert(it2.hasNext)
@@ -117,11 +117,11 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
     assert(it2.hasNext)
     assert((40, "five") == it2.next())
     assert(it2.hasNext)
-    assert((59, "eight") == it2.next())
+    assert((50, "one") == it2.next())
     assert(it2.hasNext)
     assert((55, "one b") == it2.next())
     assert(it2.hasNext)
-    assert((50, "one") == it2.next())
+    assert((59, "eight") == it2.next())
     assert(it2.hasNext)
     assert((60, "seven") == it2.next())
     assert(it2.hasNext)
