@@ -2,10 +2,10 @@ package org.leialearns.crystallize.immutabletree
 
 import grizzled.slf4j.Logging
 
-trait NodeFactory[A,T <: TreeNodeTrait[A,T],V] {
-  def createNode(leftNodeOption: Option[T], item: A, rightNodeOption: Option[T], variant: V): T
-  def createNode(leftNodeOption: Option[T], bucket: T, rightNodeOption: Option[T], variant: V): T
-  def createNode(leftNodeOption: Option[T], middle: Either[A,T], rightNodeOption: Option[T], variant: V): T = {
+trait NodeFactory[A,T,V] {
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], item: A, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], bucket: TreeNodeTrait[A,T] with T, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], middle: Either[A,TreeNodeTrait[A,T] with T], rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
     middle match {
       case Left(item) => createNode(leftNodeOption, item, rightNodeOption, variant)
       case Right(tree) => createNode(leftNodeOption, tree, rightNodeOption, variant)
@@ -20,21 +20,21 @@ trait NodeFactory[A,T <: TreeNodeTrait[A,T],V] {
 
 }
 
-abstract class Tree[A, T <: TreeNodeTrait[A,T], V](_rootOption: Option[T], _nodeFactory: NodeFactory[A,T,V]) extends Logging {
+abstract class Tree[A, T, V](_rootOption: Option[TreeNodeTrait[A,T] with T], _nodeFactory: NodeFactory[A,T,V]) extends Logging {
   def getNodeFactory: NodeFactory[A,T,V] = _nodeFactory
-  def getRoot: Option[T] = _rootOption
-  def createNode(leftNodeOption: Option[T], middle: Either[A,T], rightNodeOption: Option[T], variant: V): T = {
+  def getRoot: Option[TreeNodeTrait[A,T] with T] = _rootOption
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], middle: Either[A,TreeNodeTrait[A,T] with T], rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
     val result = getNodeFactory.createNode(leftNodeOption, middle, rightNodeOption, variant)
     trace(s"Created node: ${dump(result, Nil)}")
     result
   }
-  def createNode(leftNodeOption: Option[T], bucket: T, rightNodeOption: Option[T], variant: V): T = {
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], bucket: TreeNodeTrait[A,T] with T, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
     val result = getNodeFactory.createNode(leftNodeOption, bucket, rightNodeOption, variant)
     trace(s"Created node: ${dump(result, Nil)}")
     result
   }
-  def createNode(leftNodeOption: Option[T], item: A, rightNodeOption: Option[T], variant: V): T = {
-    val result: T = getNodeFactory.createNode(leftNodeOption, item, rightNodeOption, variant)
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], item: A, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
+    val result: TreeNodeTrait[A,T] with T = getNodeFactory.createNode(leftNodeOption, item, rightNodeOption, variant)
     trace(s"Created item node: ${dump(result, Nil)}")
     result
   }
@@ -45,14 +45,14 @@ abstract class Tree[A, T <: TreeNodeTrait[A,T], V](_rootOption: Option[T], _node
   def dump: String = {
     s"<t>${dump(getRoot map (Right(_)), Nil)}</t>"
   }
-  def dump(nodeOption: Option[Either[A,T]], rootPath: List[AnyRef]): String = {
+  def dump(nodeOption: Option[Either[A,TreeNodeTrait[A,T] with T]], rootPath: List[AnyRef]): String = {
     nodeOption match {
       case Some(Left(item)) => s"<n>$item</n>"
       case Some(Right(node)) => dump(node, rootPath)
       case _ => "<n/>"
     }
   }
-  def dump(node: T, rootPath: List[AnyRef]): String = {
+  def dump(node: TreeNodeTrait[A,T] with T, rootPath: List[AnyRef]): String = {
     if (rootPath contains node) {
       s"<!-- ${node.toString} -->"
     } else {

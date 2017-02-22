@@ -141,7 +141,7 @@ object ${BASE_NAME}Cases {
   def treeToEither[A,T](tree: TreeNodeTrait[A,T] with T): Either[A,TreeNodeTrait[A,T] with T] = {
     if (tree.getLeftNode.isEmpty && tree.getRightNode.isEmpty) tree.getMiddle else Right(tree)
   }
-  def nodeFactory[A]: NodeFactory[A, TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}, Unit] = new NodeFactory[A, TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}, Unit] {
+  def nodeFactory[A]: NodeFactory[A, ${TREE_TRAIT}, Unit] = new NodeFactory[A, ${TREE_TRAIT}, Unit] {
     def createNode(leftNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], bucket: TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}, rightNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], variant: Unit): TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT} = {
       val middle: Either[A,_] = treeToEither(bucket)
       (leftNodeOption, middle, rightNodeOption) match {
