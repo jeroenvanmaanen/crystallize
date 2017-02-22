@@ -89,7 +89,7 @@ object BlackNodeCases {
         case (None, _, None) => bucket
         case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
         case _ =>
-          (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+          (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
             case (None,None) => BlackNodeBucket[A](bucket)
             case (None,Some(Left(rightItem))) => BlackNodeRightBucketItem[A](bucket, rightItem)
             case (None,Some(Right(rightTree))) => BlackNodeRightBucketTree[A](bucket, rightTree)
@@ -103,7 +103,7 @@ object BlackNodeCases {
       }
     }
     def createNode(leftNodeOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]], item: A, rightNodeOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]], variant: Unit): TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A] = {
-      (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+      (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
         case (None,None) => BlackNodeItem[A](item)
         case (None,Some(Left(rightItem))) => BlackNodeRightItemItem[A](item, rightItem)
         case (None,Some(Right(rightTree))) => BlackNodeRightItemTree[A](item, rightTree)

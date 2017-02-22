@@ -89,7 +89,7 @@ object MyNodeCases {
         case (None, _, None) => bucket
         case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
         case _ =>
-          (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+          (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
             case (None,None) => MyNodeBucket[A](bucket)
             case (None,Some(Left(rightItem))) => MyNodeRightBucketItem[A](bucket, rightItem)
             case (None,Some(Right(rightTree))) => MyNodeRightBucketTree[A](bucket, rightTree)
@@ -103,7 +103,7 @@ object MyNodeCases {
       }
     }
     def createNode(leftNodeOption: Option[TreeNodeTrait[A,MyNode[A]] with MyNode[A]], item: A, rightNodeOption: Option[TreeNodeTrait[A,MyNode[A]] with MyNode[A]], variant: Unit): TreeNodeTrait[A,MyNode[A]] with MyNode[A] = {
-      (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+      (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
         case (None,None) => MyNodeItem[A](item)
         case (None,Some(Left(rightItem))) => MyNodeRightItemItem[A](item, rightItem)
         case (None,Some(Right(rightTree))) => MyNodeRightItemTree[A](item, rightTree)

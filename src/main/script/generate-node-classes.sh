@@ -148,13 +148,13 @@ object ${BASE_NAME}Cases {
         case (None, _, None) => bucket
         case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
         case _ =>
-          (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+          (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
 $(for CASE in "${BUCKET_CASES[@]}" ; do echo "            $CASE" ; done)
           }
       }
     }
     def createNode(leftNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], item: A, rightNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], variant: Unit): TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT} = {
-      (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+      (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
 $(for CASE in "${ITEM_CASES[@]}" ; do echo "        $CASE" ; done)
       }
     }

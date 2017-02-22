@@ -89,7 +89,7 @@ object SimpleCases {
         case (None, _, None) => bucket
         case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
         case _ =>
-          (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+          (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
             case (None,None) => SimpleBucket[A](bucket)
             case (None,Some(Left(rightItem))) => SimpleRightBucketItem[A](bucket, rightItem)
             case (None,Some(Right(rightTree))) => SimpleRightBucketTree[A](bucket, rightTree)
@@ -103,7 +103,7 @@ object SimpleCases {
       }
     }
     def createNode(leftNodeOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], item: A, rightNodeOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], variant: Unit): TreeNodeTrait[A,Simple[A]] with Simple[A] = {
-      (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
+      (leftNodeOption map treeToEither, rightNodeOption map treeToEither) match {
         case (None,None) => SimpleItem[A](item)
         case (None,Some(Left(rightItem))) => SimpleRightItemItem[A](item, rightItem)
         case (None,Some(Right(rightTree))) => SimpleRightItemTree[A](item, rightTree)
