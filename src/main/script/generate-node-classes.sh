@@ -15,7 +15,7 @@ fi
 
 if [ -z "${FQ_TREE_TRAIT}" ]
 then
-    FQ_TREE_TRAIT="org.leialearns.crystallize.immutabletree.TreeNodeTrait"
+    FQ_TREE_TRAIT=scala.AnyRef
 fi
 TREE_TRAIT="$(expr ".${FQ_TREE_TRAIT}" : '.*[.]\([^.]*\)')"
 TREE_TRAIT_PACKAGE="$(expr ".${FQ_TREE_TRAIT}x" : '\.\(.*\)\.[^.]*$')"
@@ -50,7 +50,7 @@ function get-type() {
 
     echo
     echo "import ${BASE_PACKAGE}._"
-    if [ ".${TREE_TRAIT_PACKAGE}" != ".${BASE_PACKAGE}" -a ".${TREE_TRAIT_PACKAGE}" != ".${FQ_PACKAGE}" ]
+    if [ ".${TREE_TRAIT_PACKAGE}" != ".scala" -a ".${TREE_TRAIT_PACKAGE}" != ".${BASE_PACKAGE}" -a ".${TREE_TRAIT_PACKAGE}" != ".${FQ_PACKAGE}" ]
     then
         echo "import ${FQ_TREE_TRAIT}"
     fi
@@ -98,7 +98,7 @@ function get-type() {
                     CONSTRUCTOR="${CLASS_NAME}[A](${MIDDLE_PARAM}, right${RIGHT_SUFFIX})"
                     echo "case class ${CLASS_NAME}[+A](${MIDDLE_PARAM}: ${MIDDLE_TYPE}, right${RIGHT_SUFFIX}: ${RIGHT_TYPE})"
                     echo "  extends ${NODE_CLASS}(${MIDDLE_PARAM}, right${RIGHT_SUFFIX}) with ${BASE_NAME}[A]"
-                    echo "  with Right${LEFT_SUFFIX}[A,${TREE_TRAIT}]"
+                    echo "  with Right${RIGHT_SUFFIX}[A,${TREE_TRAIT}]"
                     echo "  with RightNode${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
                     ;;
                 *:NONE)
@@ -109,7 +109,7 @@ function get-type() {
                     echo "case class ${CLASS_NAME}[+A](left${LEFT_SUFFIX}: ${LEFT_TYPE}, ${MIDDLE_PARAM}: ${MIDDLE_TYPE})"
                     echo "  extends ${NODE_CLASS}(left${LEFT_SUFFIX}, ${MIDDLE_PARAM}) with ${BASE_NAME}[A]"
                     echo "  with LeftNode${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
-                    echo "  with Left${RIGHT_SUFFIX}[A,${TREE_TRAIT}]"
+                    echo "  with Left${LEFT_SUFFIX}[A,${TREE_TRAIT}]"
                     ;;
                 *)
                     NODE_CLASS="BothNodes[${LEFT_TYPE},${MIDDLE_TYPE},${RIGHT_TYPE},A,${TREE_TRAIT}]"
@@ -138,12 +138,12 @@ function get-type() {
     echo '// Factory object'
     cat <<EOT
 object ${BASE_NAME}Cases {
-  def treeToEither[A,T <: TreeNodeTrait[A,T]](tree: T): Either[A,T] = {
+  def treeToEither[A,T](tree: TreeNodeTrait[A,T] with T): Either[A,TreeNodeTrait[A,T] with T] = {
     if (tree.getLeftNode.isEmpty && tree.getRightNode.isEmpty) tree.getMiddle else Right(tree)
   }
-  def nodeFactory[A]: NodeFactory[A, ${TREE_TRAIT}, Unit] = new NodeFactory[A, ${TREE_TRAIT}, Unit] {
-    def createNode(leftNodeOption: Option[${TREE_TRAIT}], bucket: ${TREE_TRAIT}, rightNodeOption: Option[${TREE_TRAIT}], variant: Unit): ${TREE_TRAIT} = {
-      val middle: Either[A,TreeNodeTrait] = treeToEither(bucket)
+  def nodeFactory[A]: NodeFactory[A, TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}, Unit] = new NodeFactory[A, TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}, Unit] {
+    def createNode(leftNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], bucket: TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}, rightNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], variant: Unit): TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT} = {
+      val middle: Either[A,_] = treeToEither(bucket)
       (leftNodeOption, middle, rightNodeOption) match {
         case (None, _, None) => bucket
         case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
@@ -153,7 +153,7 @@ $(for CASE in "${BUCKET_CASES[@]}" ; do echo "            $CASE" ; done)
           }
       }
     }
-    def createNode(leftNodeOption: Option[${TREE_TRAIT}], item: A, rightNodeOption: Option[${TREE_TRAIT}], variant: Unit): ${TREE_TRAIT} = {
+    def createNode(leftNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], item: A, rightNodeOption: Option[TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT}], variant: Unit): TreeNodeTrait[A,${TREE_TRAIT}] with ${TREE_TRAIT} = {
       (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
 $(for CASE in "${ITEM_CASES[@]}" ; do echo "        $CASE" ; done)
       }

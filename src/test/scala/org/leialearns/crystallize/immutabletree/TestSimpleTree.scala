@@ -12,16 +12,28 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
   }
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], bucket: Simple[String], rightNodeOption: Option[Simple[String]]): Simple[String] = {
     val result = testCreateNode(tree, leftNodeOption, Right(bucket), rightNodeOption)
-    assert(result.untwist.getBucket == Some(bucket))
     result
   }
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], middle: Either[String,Simple[String]], rightNodeOption: Option[Simple[String]]): Simple[String] = {
     val result = tree.createNode(leftNodeOption, middle, rightNodeOption, ())
-    val untwisted = result.untwist
-    val untwistedLeftNode = untwisted.getLeftNode map ((either) => tree.asTree(either))
-    val untwistedRightNode = untwisted.getRightNode map ((either) => tree.asTree(either))
-    assert(untwistedLeftNode == leftNodeOption)
-    assert(untwistedRightNode == rightNodeOption)
+    if (leftNodeOption.isEmpty && middle.isRight && rightNodeOption.isEmpty) {
+      assert(result == middle.right.get)
+    } else {
+      val untwisted = result.untwist
+      val untwistedLeftNode = untwisted.getLeftNode map ((either) => tree.asTree(either))
+      val untwistedRightNode = untwisted.getRightNode map ((either) => tree.asTree(either))
+      assert(untwistedLeftNode == leftNodeOption)
+      assert(untwistedRightNode == rightNodeOption)
+      assert(untwisted.getMiddle == middle)
+      middle match {
+        case Left(middleItem) =>
+          assert(untwisted.getItem == middleItem)
+          assert(untwisted.getBucket.isEmpty)
+        case Right(middleBucket) =>
+          assert(untwisted.getItem == middleBucket.getItem)
+          assert(untwisted.getBucket == Some(middleBucket))
+      }
+    }
     result
   }
 

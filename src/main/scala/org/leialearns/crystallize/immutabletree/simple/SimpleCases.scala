@@ -9,12 +9,12 @@ case class SimpleRightItemItem[+A](item: A, rightItem: A)
   with RightNodeItem[A,Simple[A]]
 case class SimpleRightItemTree[+A](item: A, rightTree: Simple[A])
   extends PairNode[A,Simple[A],A,Simple[A]](item, rightTree) with Simple[A]
-  with RightItem[A,Simple[A]]
+  with RightTree[A,Simple[A]]
   with RightNodeItem[A,Simple[A]]
 case class SimpleBucket[+A](bucket: Simple[A]) extends SingleNode[Simple[A],A,Simple[A]](bucket) with Simple[A] with Bucket[A,Simple[A]]
 case class SimpleRightBucketItem[+A](bucket: Simple[A], rightItem: A)
   extends PairNode[Simple[A],A,A,Simple[A]](bucket, rightItem) with Simple[A]
-  with RightTree[A,Simple[A]]
+  with RightItem[A,Simple[A]]
   with RightNodeBucket[A,Simple[A]]
 case class SimpleRightBucketTree[+A](bucket: Simple[A], rightTree: Simple[A])
   extends PairNode[Simple[A],Simple[A],A,Simple[A]](bucket, rightTree) with Simple[A]
@@ -37,7 +37,7 @@ case class SimpleItemItemTree[+A](leftItem: A, item: A, rightTree: Simple[A])
 case class SimpleLeftItemBucket[+A](leftItem: A, bucket: Simple[A])
   extends PairNode[A,Simple[A],A,Simple[A]](leftItem, bucket) with Simple[A]
   with LeftNodeBucket[A,Simple[A]]
-  with LeftTree[A,Simple[A]]
+  with LeftItem[A,Simple[A]]
 case class SimpleItemBucketItem[+A](leftItem: A, bucket: Simple[A], rightItem: A)
   extends BothNodes[A,Simple[A],A,A,Simple[A]](leftItem, bucket, rightItem) with Simple[A]
   with LeftItem[A,Simple[A]]
@@ -51,7 +51,7 @@ case class SimpleItemBucketTree[+A](leftItem: A, bucket: Simple[A], rightTree: S
 case class SimpleLeftTreeItem[+A](leftTree: Simple[A], item: A)
   extends PairNode[Simple[A],A,A,Simple[A]](leftTree, item) with Simple[A]
   with LeftNodeItem[A,Simple[A]]
-  with LeftItem[A,Simple[A]]
+  with LeftTree[A,Simple[A]]
 case class SimpleTreeItemItem[+A](leftTree: Simple[A], item: A, rightItem: A)
   extends BothNodes[Simple[A],A,A,A,Simple[A]](leftTree, item, rightItem) with Simple[A]
   with LeftTree[A,Simple[A]]
@@ -79,12 +79,12 @@ case class SimpleTreeBucketTree[+A](leftTree: Simple[A], bucket: Simple[A], righ
 
 // Factory object
 object SimpleCases {
-  def treeToEither[A,T <: TreeNodeTrait[A,T]](tree: T): Either[A,T] = {
+  def treeToEither[A,T](tree: TreeNodeTrait[A,T] with T): Either[A,TreeNodeTrait[A,T] with T] = {
     if (tree.getLeftNode.isEmpty && tree.getRightNode.isEmpty) tree.getMiddle else Right(tree)
   }
-  def nodeFactory[A]: NodeFactory[A, Simple[A], Unit] = new NodeFactory[A, Simple[A], Unit] {
-    def createNode(leftNodeOption: Option[Simple[A]], bucket: Simple[A], rightNodeOption: Option[Simple[A]], variant: Unit): Simple[A] = {
-      val middle: Either[A,TreeNodeTrait] = treeToEither(bucket)
+  def nodeFactory[A]: NodeFactory[A, TreeNodeTrait[A,Simple[A]] with Simple[A], Unit] = new NodeFactory[A, TreeNodeTrait[A,Simple[A]] with Simple[A], Unit] {
+    def createNode(leftNodeOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], bucket: TreeNodeTrait[A,Simple[A]] with Simple[A], rightNodeOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], variant: Unit): TreeNodeTrait[A,Simple[A]] with Simple[A] = {
+      val middle: Either[A,_] = treeToEither(bucket)
       (leftNodeOption, middle, rightNodeOption) match {
         case (None, _, None) => bucket
         case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
@@ -102,7 +102,7 @@ object SimpleCases {
           }
       }
     }
-    def createNode(leftNodeOption: Option[Simple[A]], item: A, rightNodeOption: Option[Simple[A]], variant: Unit): Simple[A] = {
+    def createNode(leftNodeOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], item: A, rightNodeOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], variant: Unit): TreeNodeTrait[A,Simple[A]] with Simple[A] = {
       (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
         case (None,None) => SimpleItem[A](item)
         case (None,Some(Left(rightItem))) => SimpleRightItemItem[A](item, rightItem)
