@@ -61,7 +61,7 @@ function get-type() {
     echo
     declare -a ITEM_CASES
     declare -a BUCKET_CASES
-    for LEFT in 'NONE:None' "ITEM:Some(${BASE_NAME}Item(leftItem)):Item:A" "TREE:Some(leftTree):Tree:${TREE_TRAIT}"
+    for LEFT in 'NONE:None' "ITEM:Some(Left(leftItem)):Item:A" "TREE:Some(Right(leftTree)):Tree:${TREE_TRAIT}"
     do
         LEFT_KIND="$(get-kind "$LEFT")"
         LEFT_PATTERN="$(get-pattern "${LEFT}")"
@@ -76,7 +76,7 @@ function get-type() {
             MIDDLE_PARAM="$(echo "${MIDDLE_SUFFIX}" | tr 'A-Z' 'a-z')"
             MIDDLE_TYPE="$(get-type "$MIDDLE")"
             echo "MIDDLE: [KIND:${MIDDLE_KIND}] [SUFFIX:${MIDDLE_SUFFIX}] [PARAM:${MIDDLE_PARAM}] [TYPE:${MIDDLE_TYPE}]" >&2
-            for RIGHT in 'NONE:None' "ITEM:Some(${BASE_NAME}Item(rightItem)):Item:A" "TREE:Some(rightTree):Tree:${TREE_TRAIT}"
+            for RIGHT in 'NONE:None' "ITEM:Some(Left(rightItem)):Item:A" "TREE:Some(Right(rightTree)):Tree:${TREE_TRAIT}"
             do
                 RIGHT_KIND="$(get-kind "$RIGHT")"
                 RIGHT_PATTERN="$(get-pattern "${RIGHT}")"
@@ -87,42 +87,39 @@ function get-type() {
                 CONSTRUCTOR='???'
                 case "${LEFT_KIND}:${RIGHT_KIND}" in
                 NONE:NONE)
-                    CLASS_NAME="${BASE_NAME}${MIDDLE_SUFFIX}[A]"
-                    CONSTRUCTOR="${CLASS_NAME}(${MIDDLE_PARAM})"
-                    echo "case class ${CLASS_NAME}(${MIDDLE_PARAM}: ${MIDDLE_TYPE}) extends SingleNode[${MIDDLE_TYPE},A,${TREE_TRAIT}](${MIDDLE_PARAM}) with ${BASE_NAME}[A] with ${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
+                    CLASS_NAME="${BASE_NAME}${MIDDLE_SUFFIX}"
+                    CONSTRUCTOR="${CLASS_NAME}[A](${MIDDLE_PARAM})"
+                    echo "case class ${CLASS_NAME}[+A](${MIDDLE_PARAM}: ${MIDDLE_TYPE}) extends SingleNode[${MIDDLE_TYPE},A,${TREE_TRAIT}](${MIDDLE_PARAM}) with ${BASE_NAME}[A] with ${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
                     ;;
                 NONE:*)
                     NODE_CLASS="PairNode[${MIDDLE_TYPE},${RIGHT_TYPE},A,${TREE_TRAIT}]"
                     LEFT_SUFFIX="$(echo "${MIDDLE_SUFFIX}" | sed -e 's/Bucket/Tree/')"
-                    COERCE_LEFT="CoerceLeft${LEFT_SUFFIX}[A,${RIGHT_TYPE},${TREE_TRAIT}]"
-                    COERCE_RIGHT="CoerceRight${RIGHT_SUFFIX}[${MIDDLE_TYPE},A,${TREE_TRAIT}]"
-                    CLASS_NAME="${BASE_NAME}Right${MIDDLE_SUFFIX}${RIGHT_SUFFIX}[A]"
-                    CONSTRUCTOR="${CLASS_NAME}(${MIDDLE_PARAM}, right${RIGHT_SUFFIX})"
-                    echo "case class ${CLASS_NAME}(${MIDDLE_PARAM}: ${MIDDLE_TYPE}, right${RIGHT_SUFFIX}: ${RIGHT_TYPE})"
+                    CLASS_NAME="${BASE_NAME}Right${MIDDLE_SUFFIX}${RIGHT_SUFFIX}"
+                    CONSTRUCTOR="${CLASS_NAME}[A](${MIDDLE_PARAM}, right${RIGHT_SUFFIX})"
+                    echo "case class ${CLASS_NAME}[+A](${MIDDLE_PARAM}: ${MIDDLE_TYPE}, right${RIGHT_SUFFIX}: ${RIGHT_TYPE})"
                     echo "  extends ${NODE_CLASS}(${MIDDLE_PARAM}, right${RIGHT_SUFFIX}) with ${BASE_NAME}[A]"
-                    echo "  with ${COERCE_LEFT} with Right${LEFT_SUFFIX}[A,${RIGHT_TYPE},${TREE_TRAIT}] with ${COERCE_RIGHT}"
+                    echo "  with Right${LEFT_SUFFIX}[A,${TREE_TRAIT}]"
+                    echo "  with RightNode${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
                     ;;
                 *:NONE)
                     NODE_CLASS="PairNode[${LEFT_TYPE},${MIDDLE_TYPE},A,${TREE_TRAIT}]"
                     RIGHT_SUFFIX="$(echo "${MIDDLE_SUFFIX}" | sed -e 's/Bucket/Tree/')"
-                    COERCE_LEFT="CoerceLeft${LEFT_SUFFIX}[A,${MIDDLE_TYPE},${TREE_TRAIT}]"
-                    COERCE_RIGHT="CoerceRight${RIGHT_SUFFIX}[${LEFT_TYPE},A,${TREE_TRAIT}]"
-                    CLASS_NAME="${BASE_NAME}Left${LEFT_SUFFIX}${MIDDLE_SUFFIX}[A]"
-                    CONSTRUCTOR="${CLASS_NAME}(left${LEFT_SUFFIX}, ${MIDDLE_PARAM})"
-                    echo "case class ${CLASS_NAME}(left${LEFT_SUFFIX}: ${LEFT_TYPE}, ${MIDDLE_PARAM}: ${MIDDLE_TYPE})"
+                    CLASS_NAME="${BASE_NAME}Left${LEFT_SUFFIX}${MIDDLE_SUFFIX}"
+                    CONSTRUCTOR="${CLASS_NAME}[A](left${LEFT_SUFFIX}, ${MIDDLE_PARAM})"
+                    echo "case class ${CLASS_NAME}[+A](left${LEFT_SUFFIX}: ${LEFT_TYPE}, ${MIDDLE_PARAM}: ${MIDDLE_TYPE})"
                     echo "  extends ${NODE_CLASS}(left${LEFT_SUFFIX}, ${MIDDLE_PARAM}) with ${BASE_NAME}[A]"
-                    echo "  with ${COERCE_LEFT} with Left${RIGHT_SUFFIX}[${LEFT_TYPE},A,${TREE_TRAIT}] with ${COERCE_RIGHT}"
+                    echo "  with LeftNode${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
+                    echo "  with Left${RIGHT_SUFFIX}[A,${TREE_TRAIT}]"
                     ;;
                 *)
                     NODE_CLASS="BothNodes[${LEFT_TYPE},${MIDDLE_TYPE},${RIGHT_TYPE},A,${TREE_TRAIT}]"
-                    COERCE_LEFT="CoerceLeft${LEFT_SUFFIX}[A,${RIGHT_TYPE},${TREE_TRAIT}]"
-                    COERCE_RIGHT="CoerceRight${RIGHT_SUFFIX}[${LEFT_TYPE},A,${TREE_TRAIT}]"
-                    CLASS_NAME="${BASE_NAME}${LEFT_SUFFIX}${MIDDLE_SUFFIX}${RIGHT_SUFFIX}[A]"
-                    CONSTRUCTOR="${CLASS_NAME}(left${LEFT_SUFFIX}, ${MIDDLE_PARAM}, right${RIGHT_SUFFIX})"
-                    echo "case class ${CLASS_NAME}(left${LEFT_SUFFIX}: ${LEFT_TYPE}, ${MIDDLE_PARAM}: ${MIDDLE_TYPE}, right${RIGHT_SUFFIX}: ${RIGHT_TYPE})"
+                    CLASS_NAME="${BASE_NAME}${LEFT_SUFFIX}${MIDDLE_SUFFIX}${RIGHT_SUFFIX}"
+                    CONSTRUCTOR="${CLASS_NAME}[A](left${LEFT_SUFFIX}, ${MIDDLE_PARAM}, right${RIGHT_SUFFIX})"
+                    echo "case class ${CLASS_NAME}[+A](left${LEFT_SUFFIX}: ${LEFT_TYPE}, ${MIDDLE_PARAM}: ${MIDDLE_TYPE}, right${RIGHT_SUFFIX}: ${RIGHT_TYPE})"
                     echo "  extends ${NODE_CLASS}(left${LEFT_SUFFIX}, ${MIDDLE_PARAM}, right${RIGHT_SUFFIX}) with ${BASE_NAME}[A]"
-                    echo "  with ${COERCE_LEFT} with ${COERCE_RIGHT}"
-                    echo "  with CoerceMiddle${MIDDLE_SUFFIX}[${LEFT_TYPE},A,${RIGHT_TYPE},${TREE_TRAIT}]"
+                    echo "  with Left${LEFT_SUFFIX}[A,${TREE_TRAIT}]"
+                    echo "  with ${MIDDLE_SUFFIX}[A,${TREE_TRAIT}]"
+                    echo "  with Right${RIGHT_SUFFIX}[A,${TREE_TRAIT}]"
                 esac
                 CASE_CLAUSE="case (${LEFT_PATTERN},${RIGHT_PATTERN}) => ${CONSTRUCTOR}"
                 echo "CASE_CLAUSE[${MIDDLE_KIND}]: ${CASE_CLAUSE}" >&2
@@ -141,25 +138,23 @@ function get-type() {
     echo '// Factory object'
     cat <<EOT
 object ${BASE_NAME}Cases {
-  def nodeFactory[A]: NodeFactory[A, ${TREE_TRAIT}] = new NodeFactory[A, ${TREE_TRAIT}] {
-    def createNode(leftNodeOption: Option[${TREE_TRAIT}], middle: Either[A,${TREE_TRAIT}], rightNodeOption: Option[${TREE_TRAIT}]): ${TREE_TRAIT} = {
-      middle match {
-        case Left(item) => createNode(leftNodeOption, item, rightNodeOption)
-        case Right(bucket) => createNode(leftNodeOption, bucket, rightNodeOption)
-      }
-    }
-    def createNode(leftNodeOption: Option[${TREE_TRAIT}], bucket: ${TREE_TRAIT}, rightNodeOption: Option[${TREE_TRAIT}]): ${TREE_TRAIT} = {
-      (leftNodeOption, bucket, rightNodeOption) match {
-        case (None, ${BASE_NAME}Item(item), None) => bucket
-        case (_, ${BASE_NAME}Item(item), _) => createNode(leftNodeOption, item, rightNodeOption)
+  def treeToEither[A,T <: TreeNodeTrait[A,T]](tree: T): Either[A,T] = {
+    if (tree.getLeftNode.isEmpty && tree.getRightNode.isEmpty) tree.getMiddle else Right(tree)
+  }
+  def nodeFactory[A]: NodeFactory[A, ${TREE_TRAIT}, Unit] = new NodeFactory[A, ${TREE_TRAIT}, Unit] {
+    def createNode(leftNodeOption: Option[${TREE_TRAIT}], bucket: ${TREE_TRAIT}, rightNodeOption: Option[${TREE_TRAIT}], variant: Unit): ${TREE_TRAIT} = {
+      val middle: Either[A,TreeNodeTrait] = treeToEither(bucket)
+      (leftNodeOption, middle, rightNodeOption) match {
+        case (None, _, None) => bucket
+        case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
         case _ =>
-          (leftNodeOption, rightNodeOption) match {
+          (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
 $(for CASE in "${BUCKET_CASES[@]}" ; do echo "            $CASE" ; done)
           }
       }
     }
-    def createNode(leftNodeOption: Option[${TREE_TRAIT}], item: A, rightNodeOption: Option[${TREE_TRAIT}]): ${TREE_TRAIT} = {
-      (leftNodeOption, rightNodeOption) match {
+    def createNode(leftNodeOption: Option[${TREE_TRAIT}], item: A, rightNodeOption: Option[${TREE_TRAIT}], variant: Unit): ${TREE_TRAIT} = {
+      (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
 $(for CASE in "${ITEM_CASES[@]}" ; do echo "        $CASE" ; done)
       }
     }

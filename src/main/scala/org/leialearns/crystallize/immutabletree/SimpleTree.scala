@@ -3,7 +3,7 @@ package org.leialearns.crystallize.immutabletree
 import grizzled.slf4j.Logging
 import org.leialearns.crystallize.immutabletree.simple.{Simple, SimpleCases}
 
-class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Extractor[A,K], keyKind: KeyKind[K]) extends Tree[A, Unit, Simple[A]](rootOption, SimpleCases.nodeFactory[A]) with Logging {
+class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Extractor[A,K], keyKind: KeyKind[K]) extends Tree[A,Simple[A],Unit](rootOption, SimpleCases.nodeFactory[A]) with Logging {
   def getKeyExtractor = keyExtractor
   def find(key: K): Option[A] = {
     find(rootOption map (Right(_)), key)
@@ -128,7 +128,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
         if (keyKind.equals(keyExtractor.extract(newItem), keyExtractor.extract(item))) {
           Left(newItem)
         } else {
-          Right(getNodeFactory.createNode(None, item, Some(getNodeFactory.createNode(None, newItem, None))))
+          Right(getNodeFactory.createNode(None, item, Some(getNodeFactory.createNode(None, newItem, None, ())), ()))
         }
       case Right(tree) =>
         Right(replace(newItem, tree))
@@ -206,7 +206,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
     } else {
       val order = keyKind.compare(key, nodeKey)
       val oldLeftNode = untwisted.getLeftNode map asTree
-      val oldBucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem, None))
+      val oldBucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem, None, ()))
       val oldRightNode = untwisted.getRightNode map asTree
       if (order == 0) {
         val newLeftNode = oldLeftNode flatMap (bucketRemove(key, _))
@@ -238,7 +238,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       }
     }
   }
-  def asTree(either: Either[A,Simple[A]]): Simple[A] = getNodeFactory.asTree(either)
+  def asTree(either: Either[A,Simple[A]]): Simple[A] = getNodeFactory.asTree(either, ())
   def popItem(either: Either[A,Simple[A]]): (A, Option[Simple[A]]) = {
     either match {
       case Left(item) => (item, None)
@@ -251,7 +251,7 @@ class SimpleTree[A <: AnyRef, K](rootOption: Option[Simple[A]], keyExtractor: Ex
       case _ =>
         val untwisted = node.untwist
         val leftNodeOption = untwisted.getLeftNode map asTree
-        val bucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem, None))
+        val bucket = untwisted.getBucket.getOrElse(getNodeFactory.createNode(None, untwisted.getItem, None, ()))
         val rightNodeOption = untwisted.getRightNode map asTree
         (leftNodeOption, bucket) match {
           case (Some(leftNode), _) =>

@@ -2,103 +2,117 @@ package org.leialearns.crystallize.immutabletree.mynode
 
 import org.leialearns.crystallize.immutabletree._
 
-case class MyNodeItem[A](item: A) extends SingleNode[A,A,MyNode[A]](item) with MyNode[A] with Item[A,MyNode[A]]
-case class MyNodeRightItemItem[A](item: A, rightItem: A)
-  extends PairNode[A,A,A,MyNode[A]](item, rightItem) with MyNode[A]
-  with CoerceLeftItem[A,A,MyNode[A]] with RightItem[A,A,MyNode[A]] with CoerceRightItem[A,A,MyNode[A]]
-case class MyNodeRightItemTree[A](item: A, rightTree: MyNode[A])
-  extends PairNode[A,MyNode[A],A,MyNode[A]](item, rightTree) with MyNode[A]
-  with CoerceLeftItem[A,MyNode[A],MyNode[A]] with RightItem[A,MyNode[A],MyNode[A]] with CoerceRightTree[A,A,MyNode[A]]
-case class MyNodeBucket[A](bucket: MyNode[A]) extends SingleNode[MyNode[A],A,MyNode[A]](bucket) with MyNode[A] with Bucket[A,MyNode[A]]
-case class MyNodeRightBucketItem[A](bucket: MyNode[A], rightItem: A)
-  extends PairNode[MyNode[A],A,A,MyNode[A]](bucket, rightItem) with MyNode[A]
-  with CoerceLeftTree[A,A,MyNode[A]] with RightTree[A,A,MyNode[A]] with CoerceRightItem[MyNode[A],A,MyNode[A]]
-case class MyNodeRightBucketTree[A](bucket: MyNode[A], rightTree: MyNode[A])
-  extends PairNode[MyNode[A],MyNode[A],A,MyNode[A]](bucket, rightTree) with MyNode[A]
-  with CoerceLeftTree[A,MyNode[A],MyNode[A]] with RightTree[A,MyNode[A],MyNode[A]] with CoerceRightTree[MyNode[A],A,MyNode[A]]
-case class MyNodeLeftItemItem[A](leftItem: A, item: A)
-  extends PairNode[A,A,A,MyNode[A]](leftItem, item) with MyNode[A]
-  with CoerceLeftItem[A,A,MyNode[A]] with LeftItem[A,A,MyNode[A]] with CoerceRightItem[A,A,MyNode[A]]
-case class MyNodeItemItemItem[A](leftItem: A, item: A, rightItem: A)
-  extends BothNodes[A,A,A,A,MyNode[A]](leftItem, item, rightItem) with MyNode[A]
-  with CoerceLeftItem[A,A,MyNode[A]] with CoerceRightItem[A,A,MyNode[A]]
-  with CoerceMiddleItem[A,A,A,MyNode[A]]
-case class MyNodeItemItemTree[A](leftItem: A, item: A, rightTree: MyNode[A])
-  extends BothNodes[A,A,MyNode[A],A,MyNode[A]](leftItem, item, rightTree) with MyNode[A]
-  with CoerceLeftItem[A,MyNode[A],MyNode[A]] with CoerceRightTree[A,A,MyNode[A]]
-  with CoerceMiddleItem[A,A,MyNode[A],MyNode[A]]
-case class MyNodeLeftItemBucket[A](leftItem: A, bucket: MyNode[A])
-  extends PairNode[A,MyNode[A],A,MyNode[A]](leftItem, bucket) with MyNode[A]
-  with CoerceLeftItem[A,MyNode[A],MyNode[A]] with LeftTree[A,A,MyNode[A]] with CoerceRightTree[A,A,MyNode[A]]
-case class MyNodeItemBucketItem[A](leftItem: A, bucket: MyNode[A], rightItem: A)
-  extends BothNodes[A,MyNode[A],A,A,MyNode[A]](leftItem, bucket, rightItem) with MyNode[A]
-  with CoerceLeftItem[A,A,MyNode[A]] with CoerceRightItem[A,A,MyNode[A]]
-  with CoerceMiddleBucket[A,A,A,MyNode[A]]
-case class MyNodeItemBucketTree[A](leftItem: A, bucket: MyNode[A], rightTree: MyNode[A])
-  extends BothNodes[A,MyNode[A],MyNode[A],A,MyNode[A]](leftItem, bucket, rightTree) with MyNode[A]
-  with CoerceLeftItem[A,MyNode[A],MyNode[A]] with CoerceRightTree[A,A,MyNode[A]]
-  with CoerceMiddleBucket[A,A,MyNode[A],MyNode[A]]
-case class MyNodeLeftTreeItem[A](leftTree: MyNode[A], item: A)
-  extends PairNode[MyNode[A],A,A,MyNode[A]](leftTree, item) with MyNode[A]
-  with CoerceLeftTree[A,A,MyNode[A]] with LeftItem[MyNode[A],A,MyNode[A]] with CoerceRightItem[MyNode[A],A,MyNode[A]]
-case class MyNodeTreeItemItem[A](leftTree: MyNode[A], item: A, rightItem: A)
-  extends BothNodes[MyNode[A],A,A,A,MyNode[A]](leftTree, item, rightItem) with MyNode[A]
-  with CoerceLeftTree[A,A,MyNode[A]] with CoerceRightItem[MyNode[A],A,MyNode[A]]
-  with CoerceMiddleItem[MyNode[A],A,A,MyNode[A]]
-case class MyNodeTreeItemTree[A](leftTree: MyNode[A], item: A, rightTree: MyNode[A])
-  extends BothNodes[MyNode[A],A,MyNode[A],A,MyNode[A]](leftTree, item, rightTree) with MyNode[A]
-  with CoerceLeftTree[A,MyNode[A],MyNode[A]] with CoerceRightTree[MyNode[A],A,MyNode[A]]
-  with CoerceMiddleItem[MyNode[A],A,MyNode[A],MyNode[A]]
-case class MyNodeLeftTreeBucket[A](leftTree: MyNode[A], bucket: MyNode[A])
-  extends PairNode[MyNode[A],MyNode[A],A,MyNode[A]](leftTree, bucket) with MyNode[A]
-  with CoerceLeftTree[A,MyNode[A],MyNode[A]] with LeftTree[MyNode[A],A,MyNode[A]] with CoerceRightTree[MyNode[A],A,MyNode[A]]
-case class MyNodeTreeBucketItem[A](leftTree: MyNode[A], bucket: MyNode[A], rightItem: A)
-  extends BothNodes[MyNode[A],MyNode[A],A,A,MyNode[A]](leftTree, bucket, rightItem) with MyNode[A]
-  with CoerceLeftTree[A,A,MyNode[A]] with CoerceRightItem[MyNode[A],A,MyNode[A]]
-  with CoerceMiddleBucket[MyNode[A],A,A,MyNode[A]]
-case class MyNodeTreeBucketTree[A](leftTree: MyNode[A], bucket: MyNode[A], rightTree: MyNode[A])
-  extends BothNodes[MyNode[A],MyNode[A],MyNode[A],A,MyNode[A]](leftTree, bucket, rightTree) with MyNode[A]
-  with CoerceLeftTree[A,MyNode[A],MyNode[A]] with CoerceRightTree[MyNode[A],A,MyNode[A]]
-  with CoerceMiddleBucket[MyNode[A],A,MyNode[A],MyNode[A]]
+case class MyNodeItem[+A](item: A) extends SingleNode[A,A,TreeNodeTrait](item) with MyNode[A] with Item[A,TreeNodeTrait]
+case class MyNodeRightItemItem[+A](item: A, rightItem: A)
+  extends PairNode[A,A,A,TreeNodeTrait](item, rightItem) with MyNode[A]
+  with RightItem[A,TreeNodeTrait]
+  with RightNodeItem[A,TreeNodeTrait]
+case class MyNodeRightItemTree[+A](item: A, rightTree: TreeNodeTrait)
+  extends PairNode[A,TreeNodeTrait,A,TreeNodeTrait](item, rightTree) with MyNode[A]
+  with RightItem[A,TreeNodeTrait]
+  with RightNodeItem[A,TreeNodeTrait]
+case class MyNodeBucket[+A](bucket: TreeNodeTrait) extends SingleNode[TreeNodeTrait,A,TreeNodeTrait](bucket) with MyNode[A] with Bucket[A,TreeNodeTrait]
+case class MyNodeRightBucketItem[+A](bucket: TreeNodeTrait, rightItem: A)
+  extends PairNode[TreeNodeTrait,A,A,TreeNodeTrait](bucket, rightItem) with MyNode[A]
+  with RightTree[A,TreeNodeTrait]
+  with RightNodeBucket[A,TreeNodeTrait]
+case class MyNodeRightBucketTree[+A](bucket: TreeNodeTrait, rightTree: TreeNodeTrait)
+  extends PairNode[TreeNodeTrait,TreeNodeTrait,A,TreeNodeTrait](bucket, rightTree) with MyNode[A]
+  with RightTree[A,TreeNodeTrait]
+  with RightNodeBucket[A,TreeNodeTrait]
+case class MyNodeLeftItemItem[+A](leftItem: A, item: A)
+  extends PairNode[A,A,A,TreeNodeTrait](leftItem, item) with MyNode[A]
+  with LeftNodeItem[A,TreeNodeTrait]
+  with LeftItem[A,TreeNodeTrait]
+case class MyNodeItemItemItem[+A](leftItem: A, item: A, rightItem: A)
+  extends BothNodes[A,A,A,A,TreeNodeTrait](leftItem, item, rightItem) with MyNode[A]
+  with LeftItem[A,TreeNodeTrait]
+  with Item[A,TreeNodeTrait]
+  with RightItem[A,TreeNodeTrait]
+case class MyNodeItemItemTree[+A](leftItem: A, item: A, rightTree: TreeNodeTrait)
+  extends BothNodes[A,A,TreeNodeTrait,A,TreeNodeTrait](leftItem, item, rightTree) with MyNode[A]
+  with LeftItem[A,TreeNodeTrait]
+  with Item[A,TreeNodeTrait]
+  with RightTree[A,TreeNodeTrait]
+case class MyNodeLeftItemBucket[+A](leftItem: A, bucket: TreeNodeTrait)
+  extends PairNode[A,TreeNodeTrait,A,TreeNodeTrait](leftItem, bucket) with MyNode[A]
+  with LeftNodeBucket[A,TreeNodeTrait]
+  with LeftTree[A,TreeNodeTrait]
+case class MyNodeItemBucketItem[+A](leftItem: A, bucket: TreeNodeTrait, rightItem: A)
+  extends BothNodes[A,TreeNodeTrait,A,A,TreeNodeTrait](leftItem, bucket, rightItem) with MyNode[A]
+  with LeftItem[A,TreeNodeTrait]
+  with Bucket[A,TreeNodeTrait]
+  with RightItem[A,TreeNodeTrait]
+case class MyNodeItemBucketTree[+A](leftItem: A, bucket: TreeNodeTrait, rightTree: TreeNodeTrait)
+  extends BothNodes[A,TreeNodeTrait,TreeNodeTrait,A,TreeNodeTrait](leftItem, bucket, rightTree) with MyNode[A]
+  with LeftItem[A,TreeNodeTrait]
+  with Bucket[A,TreeNodeTrait]
+  with RightTree[A,TreeNodeTrait]
+case class MyNodeLeftTreeItem[+A](leftTree: TreeNodeTrait, item: A)
+  extends PairNode[TreeNodeTrait,A,A,TreeNodeTrait](leftTree, item) with MyNode[A]
+  with LeftNodeItem[A,TreeNodeTrait]
+  with LeftItem[A,TreeNodeTrait]
+case class MyNodeTreeItemItem[+A](leftTree: TreeNodeTrait, item: A, rightItem: A)
+  extends BothNodes[TreeNodeTrait,A,A,A,TreeNodeTrait](leftTree, item, rightItem) with MyNode[A]
+  with LeftTree[A,TreeNodeTrait]
+  with Item[A,TreeNodeTrait]
+  with RightItem[A,TreeNodeTrait]
+case class MyNodeTreeItemTree[+A](leftTree: TreeNodeTrait, item: A, rightTree: TreeNodeTrait)
+  extends BothNodes[TreeNodeTrait,A,TreeNodeTrait,A,TreeNodeTrait](leftTree, item, rightTree) with MyNode[A]
+  with LeftTree[A,TreeNodeTrait]
+  with Item[A,TreeNodeTrait]
+  with RightTree[A,TreeNodeTrait]
+case class MyNodeLeftTreeBucket[+A](leftTree: TreeNodeTrait, bucket: TreeNodeTrait)
+  extends PairNode[TreeNodeTrait,TreeNodeTrait,A,TreeNodeTrait](leftTree, bucket) with MyNode[A]
+  with LeftNodeBucket[A,TreeNodeTrait]
+  with LeftTree[A,TreeNodeTrait]
+case class MyNodeTreeBucketItem[+A](leftTree: TreeNodeTrait, bucket: TreeNodeTrait, rightItem: A)
+  extends BothNodes[TreeNodeTrait,TreeNodeTrait,A,A,TreeNodeTrait](leftTree, bucket, rightItem) with MyNode[A]
+  with LeftTree[A,TreeNodeTrait]
+  with Bucket[A,TreeNodeTrait]
+  with RightItem[A,TreeNodeTrait]
+case class MyNodeTreeBucketTree[+A](leftTree: TreeNodeTrait, bucket: TreeNodeTrait, rightTree: TreeNodeTrait)
+  extends BothNodes[TreeNodeTrait,TreeNodeTrait,TreeNodeTrait,A,TreeNodeTrait](leftTree, bucket, rightTree) with MyNode[A]
+  with LeftTree[A,TreeNodeTrait]
+  with Bucket[A,TreeNodeTrait]
+  with RightTree[A,TreeNodeTrait]
 
 // Factory object
 object MyNodeCases {
-  def nodeFactory[A]: NodeFactory[A, MyNode[A]] = new NodeFactory[A, MyNode[A]] {
-    def createNode(leftNodeOption: Option[MyNode[A]], middle: Either[A,MyNode[A]], rightNodeOption: Option[MyNode[A]]): MyNode[A] = {
-      middle match {
-        case Left(item) => createNode(leftNodeOption, item, rightNodeOption)
-        case Right(bucket) => createNode(leftNodeOption, bucket, rightNodeOption)
-      }
-    }
-    def createNode(leftNodeOption: Option[MyNode[A]], bucket: MyNode[A], rightNodeOption: Option[MyNode[A]]): MyNode[A] = {
-      (leftNodeOption, bucket, rightNodeOption) match {
-        case (None, MyNodeItem(item), None) => bucket
-        case (_, MyNodeItem(item), _) => createNode(leftNodeOption, item, rightNodeOption)
+  def treeToEither[A,T <: TreeNodeTrait[A,T]](tree: T): Either[A,T] = {
+    if (tree.getLeftNode.isEmpty && tree.getRightNode.isEmpty) tree.getMiddle else Right(tree)
+  }
+  def nodeFactory[A]: NodeFactory[A, TreeNodeTrait, Unit] = new NodeFactory[A, TreeNodeTrait, Unit] {
+    def createNode(leftNodeOption: Option[TreeNodeTrait], bucket: TreeNodeTrait, rightNodeOption: Option[TreeNodeTrait], variant: Unit): TreeNodeTrait = {
+      val middle: Either[A,TreeNodeTrait] = treeToEither(bucket)
+      (leftNodeOption, middle, rightNodeOption) match {
+        case (None, _, None) => bucket
+        case (_, Left(item), _) => createNode(leftNodeOption, item, rightNodeOption, variant)
         case _ =>
-          (leftNodeOption, rightNodeOption) match {
+          (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
             case (None,None) => MyNodeBucket[A](bucket)
-            case (None,Some(MyNodeItem(rightItem))) => MyNodeRightBucketItem[A](bucket, rightItem)
-            case (None,Some(rightTree)) => MyNodeRightBucketTree[A](bucket, rightTree)
-            case (Some(MyNodeItem(leftItem)),None) => MyNodeLeftItemBucket[A](leftItem, bucket)
-            case (Some(MyNodeItem(leftItem)),Some(MyNodeItem(rightItem))) => MyNodeItemBucketItem[A](leftItem, bucket, rightItem)
-            case (Some(MyNodeItem(leftItem)),Some(rightTree)) => MyNodeItemBucketTree[A](leftItem, bucket, rightTree)
-            case (Some(leftTree),None) => MyNodeLeftTreeBucket[A](leftTree, bucket)
-            case (Some(leftTree),Some(MyNodeItem(rightItem))) => MyNodeTreeBucketItem[A](leftTree, bucket, rightItem)
-            case (Some(leftTree),Some(rightTree)) => MyNodeTreeBucketTree[A](leftTree, bucket, rightTree)
+            case (None,Some(Left(rightItem))) => MyNodeRightBucketItem[A](bucket, rightItem)
+            case (None,Some(Right(rightTree))) => MyNodeRightBucketTree[A](bucket, rightTree)
+            case (Some(Left(leftItem)),None) => MyNodeLeftItemBucket[A](leftItem, bucket)
+            case (Some(Left(leftItem)),Some(Left(rightItem))) => MyNodeItemBucketItem[A](leftItem, bucket, rightItem)
+            case (Some(Left(leftItem)),Some(Right(rightTree))) => MyNodeItemBucketTree[A](leftItem, bucket, rightTree)
+            case (Some(Right(leftTree)),None) => MyNodeLeftTreeBucket[A](leftTree, bucket)
+            case (Some(Right(leftTree)),Some(Left(rightItem))) => MyNodeTreeBucketItem[A](leftTree, bucket, rightItem)
+            case (Some(Right(leftTree)),Some(Right(rightTree))) => MyNodeTreeBucketTree[A](leftTree, bucket, rightTree)
           }
       }
     }
-    def createNode(leftNodeOption: Option[MyNode[A]], item: A, rightNodeOption: Option[MyNode[A]]): MyNode[A] = {
-      (leftNodeOption, rightNodeOption) match {
+    def createNode(leftNodeOption: Option[TreeNodeTrait], item: A, rightNodeOption: Option[TreeNodeTrait], variant: Unit): TreeNodeTrait = {
+      (leftNodeOption map (treeToEither(_)), rightNodeOption map (treeToEither(_))) match {
         case (None,None) => MyNodeItem[A](item)
-        case (None,Some(MyNodeItem(rightItem))) => MyNodeRightItemItem[A](item, rightItem)
-        case (None,Some(rightTree)) => MyNodeRightItemTree[A](item, rightTree)
-        case (Some(MyNodeItem(leftItem)),None) => MyNodeLeftItemItem[A](leftItem, item)
-        case (Some(MyNodeItem(leftItem)),Some(MyNodeItem(rightItem))) => MyNodeItemItemItem[A](leftItem, item, rightItem)
-        case (Some(MyNodeItem(leftItem)),Some(rightTree)) => MyNodeItemItemTree[A](leftItem, item, rightTree)
-        case (Some(leftTree),None) => MyNodeLeftTreeItem[A](leftTree, item)
-        case (Some(leftTree),Some(MyNodeItem(rightItem))) => MyNodeTreeItemItem[A](leftTree, item, rightItem)
-        case (Some(leftTree),Some(rightTree)) => MyNodeTreeItemTree[A](leftTree, item, rightTree)
+        case (None,Some(Left(rightItem))) => MyNodeRightItemItem[A](item, rightItem)
+        case (None,Some(Right(rightTree))) => MyNodeRightItemTree[A](item, rightTree)
+        case (Some(Left(leftItem)),None) => MyNodeLeftItemItem[A](leftItem, item)
+        case (Some(Left(leftItem)),Some(Left(rightItem))) => MyNodeItemItemItem[A](leftItem, item, rightItem)
+        case (Some(Left(leftItem)),Some(Right(rightTree))) => MyNodeItemItemTree[A](leftItem, item, rightTree)
+        case (Some(Right(leftTree)),None) => MyNodeLeftTreeItem[A](leftTree, item)
+        case (Some(Right(leftTree)),Some(Left(rightItem))) => MyNodeTreeItemItem[A](leftTree, item, rightItem)
+        case (Some(Right(leftTree)),Some(Right(rightTree))) => MyNodeTreeItemTree[A](leftTree, item, rightTree)
       }
     }
   }
