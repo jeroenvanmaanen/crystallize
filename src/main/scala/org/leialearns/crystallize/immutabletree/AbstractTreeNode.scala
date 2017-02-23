@@ -11,7 +11,7 @@ trait NodeFactory[A,T,V] {
       case Right(tree) => createNode(leftNodeOption, tree, rightNodeOption, variant)
     }
   }
-  def asTree(either: Either[A,T], variant: V): T = {
+  def asTree[A2 <: A,T2 <: T](either: Either[A2,T2], variant: V): T = {
     either match {
       case Left(item) => createNode(None, item, None, variant)
       case Right(tree) => tree
