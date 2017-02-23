@@ -35,7 +35,7 @@ class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends
             case (Some(Left(childItem)), position) =>
               new TreeNodeIteratorLeafState[A,T](Some(new TreeNodeIteratorInnerState[A,T](state.getParentOption, stateNode, position)), childItem, BEFORE_LEFT)
             case (Some(Right(childNode)), position) =>
-              new TreeNodeIteratorInnerState[A,T](Some(new TreeNodeIteratorInnerState[A,T](state.getParentOption, stateNode, position)), childNode.untwist, BEFORE_LEFT)
+              new TreeNodeIteratorInnerState[A,T](Some(new TreeNodeIteratorInnerState[A,T](state.getParentOption, stateNode, position)), childNode, BEFORE_LEFT)
             case (None, DONE) =>
               state.getParentOption match {
                 case Some(parent) => parent

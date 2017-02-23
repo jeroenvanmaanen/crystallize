@@ -7,7 +7,7 @@ import org.scalatest.{Matchers, FunSuite}
 class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], item: String, rightNodeOption: Option[Simple[String]]): Simple[String] = {
     val result = testCreateNode(tree, leftNodeOption, Left(item), rightNodeOption)
-    assert(result.untwist.getItem == item)
+    assert(result.getItem == item)
     result
   }
   def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], bucket: Simple[String], rightNodeOption: Option[Simple[String]]): Simple[String] = {
@@ -19,19 +19,18 @@ class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
     if (leftNodeOption.isEmpty && middle.isRight && rightNodeOption.isEmpty) {
       assert(result == middle.right.get)
     } else {
-      val untwisted = result.untwist
-      val untwistedLeftNode = untwisted.getLeftNode map ((either) => tree.asTree(either))
-      val untwistedRightNode = untwisted.getRightNode map ((either) => tree.asTree(either))
-      assert(untwistedLeftNode == leftNodeOption)
-      assert(untwistedRightNode == rightNodeOption)
-      assert(untwisted.getMiddle == middle)
+      val resultLeftNode = result.getLeftNode map ((either) => tree.asTree(either))
+      val resultRightNode = result.getRightNode map ((either) => tree.asTree(either))
+      assert(resultLeftNode == leftNodeOption)
+      assert(resultRightNode == rightNodeOption)
+      assert(result.getMiddle == middle)
       middle match {
         case Left(middleItem) =>
-          assert(untwisted.getItem == middleItem)
-          assert(untwisted.getBucket.isEmpty)
+          assert(result.getItem == middleItem)
+          assert(result.getBucket.isEmpty)
         case Right(middleBucket) =>
-          assert(untwisted.getItem == middleBucket.getItem)
-          assert(untwisted.getBucket == Some(middleBucket))
+          assert(result.getItem == middleBucket.getItem)
+          assert(result.getBucket == Some(middleBucket))
       }
     }
     result

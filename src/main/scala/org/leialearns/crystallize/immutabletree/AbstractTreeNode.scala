@@ -45,20 +45,19 @@ abstract class Tree[A, T, V](_rootOption: Option[TreeNodeTrait[A,T] with T], _no
   def dump: String = {
     s"<t>${dump(getRoot map (Right(_)), Nil)}</t>"
   }
-  def dump(nodeOption: Option[Either[A,TreeNodeTrait[A,T] with T]], rootPath: List[AnyRef]): String = {
+  def dump[B,T2](nodeOption: Option[Either[B,TreeNodeTrait[B,T2] with T2]], rootPath: List[AnyRef]): String = {
     nodeOption match {
       case Some(Left(item)) => s"<n>$item</n>"
       case Some(Right(node)) => dump(node, rootPath)
       case _ => "<n/>"
     }
   }
-  def dump(node: TreeNodeTrait[A,T] with T, rootPath: List[AnyRef]): String = {
+  def dump[B,T2](node: TreeNodeTrait[B,T2] with T2, rootPath: List[AnyRef]): String = {
     if (rootPath contains node) {
       s"<!-- ${node.toString} -->"
     } else {
       val subpath = node :: rootPath
-      val untwisted = node.untwist
-      (untwisted.getLeftNode, untwisted.getMiddle, untwisted.getRightNode) match {
+      (node.getLeftNode, node.getMiddle, node.getRightNode) match {
         case (None, Left(item), None) => item.toString
         case (left, Left(item), right) => s"<n>${dump(left, subpath)}<i>$item</i>${dump(right, subpath)}</n>"
         case (left, Right(bucket), right) => s"<n>${dump(left, subpath)}<i>${dump(bucket, subpath)}</i>${dump(right, subpath)}</n>"
@@ -88,9 +87,6 @@ trait TreeNodeTrait[+A, +T] {
   def getRightNode: Option[Either[A,TreeNodeTrait[A,T] with T]]
   def getOrientation: Orientation = RIGHT
   def getOffset: Offset = ZERO
-  def untwist: TreeNodeTrait[A,T] with T = {
-    this.asInstanceOf[TreeNodeTrait[A,T] with T]
-  }
   def eitherToTree[B,T2](either: Either[B,TreeNodeTrait[B,T2] with T2]): Option[TreeNodeTrait[B,T2] with T2] = {
     either match {
       case Right(tree) => Some(tree)
