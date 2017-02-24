@@ -8,7 +8,10 @@ class RedBlackTree[A, K <: Ordered[K], V](rootOption: Option[RedBlackNode[A]], i
   override def insert(item: A): Tree[A, RedBlackNode[A], NodeKind] = {
     val (newRootOption, _) = rootOption match {
       case None => (getNodeFactory.createNode(None, item, None, Black), None)
-      case Some(oldRoot) => insert(item, itemKind.getKey(item), oldRoot)
+      case Some(oldRoot) =>
+        insert(item, itemKind.getKey(item), oldRoot) match {
+          case (newRoot, side) => (changeKind(newRoot, Black), side)
+        }
     }
     new RedBlackTree[A,K,V](Some(newRootOption), itemKind)
   }
@@ -38,6 +41,13 @@ class RedBlackTree[A, K <: Ordered[K], V](rootOption: Option[RedBlackNode[A]], i
     (pair, side) match {
       case ((newParent, childSide), LeftTreeSide) => getNodeFactory.createNode(Some(newParent), tree.getMiddle, asTree(tree, RightTreeSide), tree.getNodeKind)
       case ((newParent, childSide), RightTreeSide) => getNodeFactory.createNode(asTree(tree, LeftTreeSide), tree.getMiddle, Some(newParent), tree.getNodeKind)
+    }
+  }
+  def changeKind(node: RedBlackNode[A], kind: NodeKind): RedBlackNode[A] = {
+    if (kind == node.getNodeKind) {
+      node
+    } else {
+      getNodeFactory.createNode(asTree(node, LeftTreeSide), node.getMiddle, asTree(node, RightTreeSide), kind)
     }
   }
   def asTree[A2 <: A,T2 <: RedBlackNode[A]](parent: RedBlackNode[A], side: TreeSide): Option[RedBlackNode[A]] = {
