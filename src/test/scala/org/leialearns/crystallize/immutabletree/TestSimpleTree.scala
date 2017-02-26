@@ -1,82 +1,20 @@
 package org.leialearns.crystallize.immutabletree
 
-import org.leialearns.crystallize.immutabletree.simple.Simple
 import org.leialearns.crystallize.util.LoggingConfiguration
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
-class TestSimpleTree extends FunSuite with Matchers with LoggingConfiguration {
-  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], item: String, rightNodeOption: Option[Simple[String]]): Simple[String] = {
-    val result = testCreateNode(tree, leftNodeOption, Left(item), rightNodeOption)
-    assert(result.getItem == item)
-    result
-  }
-  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], bucket: Simple[String], rightNodeOption: Option[Simple[String]]): Simple[String] = {
-    val result = testCreateNode(tree, leftNodeOption, Right(bucket), rightNodeOption)
-    result
-  }
-  def testCreateNode(tree: SimpleTree[String, String], leftNodeOption: Option[Simple[String]], middle: Either[String,Simple[String]], rightNodeOption: Option[Simple[String]]): Simple[String] = {
-    val result = tree.createNode(leftNodeOption, middle, rightNodeOption, ())
-    if (leftNodeOption.isEmpty && middle.isRight && rightNodeOption.isEmpty) {
-      assert(result == middle.right.get)
-    } else {
-      val resultLeftNode = result.getLeftNode map ((either) => tree.asTree(either))
-      val resultRightNode = result.getRightNode map ((either) => tree.asTree(either))
-      assert(resultLeftNode == leftNodeOption)
-      assert(resultRightNode == rightNodeOption)
-      assert(result.getMiddle == middle)
-      middle match {
-        case Left(middleItem) =>
-          assert(result.getItem == middleItem)
-          assert(result.getBucket.isEmpty)
-        case Right(middleBucket) =>
-          assert(result.getItem == middleBucket.getItem)
-          assert(result.getBucket == Some(middleBucket))
-      }
-    }
-    result
-  }
+class TestSimpleTree extends FunSuite with TreeTestTrait with Matchers with LoggingConfiguration {
 
   test("Simple tree") {
-    val empty = new SimpleTree[String, String](None, new SetKeyExtractor[String], new SetKeyKind[String]{})
-
-    // Item nodes
-    val n1 = testCreateNode(empty, None, "one", None)
-    val n2 = testCreateNode(empty, None, "two", None)
-    val n3 = testCreateNode(empty, Some(n1), "three", None)
-    val n4 = testCreateNode(empty, None, "four", Some(n2))
-    val n5 = testCreateNode(empty, Some(n1), "five", Some(n2))
-    val n6 = testCreateNode(empty, Some(n3), "five", None)
-    val n7 = testCreateNode(empty, None, "five", Some(n4))
-    val n8 = testCreateNode(empty, Some(n3), "five", Some(n4))
-
-    // Bucket nodes
-    val n11 = testCreateNode(empty, None, n8, None)
-    val n12 = testCreateNode(empty, None, n8, None)
-    val n13 = testCreateNode(empty, Some(n1), n8, None)
-    val n14 = testCreateNode(empty, None, n8, Some(n2))
-    val n15 = testCreateNode(empty, Some(n1), n8, Some(n2))
-    val n16 = testCreateNode(empty, Some(n3), n8, None)
-    val n17 = testCreateNode(empty, None, n8, Some(n4))
-    val n18 = testCreateNode(empty, Some(n3), n8, Some(n4))
-
-    val n23 = testCreateNode(empty, Some(n11), n8, None)
-    val n24 = testCreateNode(empty, None, n8, Some(n12))
-    val n25 = testCreateNode(empty, Some(n11), n8, Some(n2))
-    val n35 = testCreateNode(empty, Some(n1), n8, Some(n12))
-
-
-    val one = empty.insert("one")
-    assert(Some("one") == one.find("one"))
-    assert(None == one.find("two"))
-
-    val two = one.insert("two")
-    assert(Some("one") == two.find("one"))
-    assert(Some("two") == two.find("two"))
-    assert(None == two.find("three"))
+    val empty = new SimpleTree[String, String, Unit](None, new SetItemKind[String]{})
+    testTree(empty, (), ())
   }
 
   test("Simple tree map") {
-    val empty = new SimpleTree[(Int, _), Int](None, new MapKeyExtractor[Int], new MapKeyKind[Int]{ override def getKeyHashCode(key: Int) = key / 10 })
+    val itemKind = new MapItemKind[Int, String]{
+      override def compare(one: Int, other: Int) = (one / 10) compareTo (other / 10)
+    }
+    val empty = new SimpleTree[(Int, String), Int, String](None, itemKind)
 
     val tree = empty
       .insert((50, "one"))

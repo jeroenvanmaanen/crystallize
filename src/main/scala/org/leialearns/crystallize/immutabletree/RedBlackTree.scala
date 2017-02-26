@@ -4,19 +4,19 @@ import org.leialearns.crystallize.immutabletree.blacknode.BlackNodeCases
 import org.leialearns.crystallize.immutabletree.bucketnode.BucketNodeCases
 import org.leialearns.crystallize.immutabletree.rednode.RedNodeCases
 
-class RedBlackTree[A, K <: Ordered[K], V](rootOption: Option[RedBlackNode[A]], itemKind: ItemKind[A,K,V]) extends Tree[A, RedBlackNode[A], NodeKind](rootOption, RedBlackTree.nodeFactory[A]) {
-  override def insert(item: A): Tree[A, RedBlackNode[A], NodeKind] = {
+class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]], _itemKind: ItemKind[A,K,V]) extends Tree[A,K,V,RedBlackNode[A],NodeKind](rootOption, RedBlackTree.nodeFactory[A], _itemKind) {
+  override def insert(item: A): Tree[A, K, V, RedBlackNode[A], NodeKind] = {
     val (newRootOption, _) = rootOption match {
       case None => (getNodeFactory.createNode(None, item, None, Black), None)
       case Some(oldRoot) =>
-        insert(item, itemKind.getKey(item), oldRoot) match {
+        insert(item, getItemKind.getKey(item), oldRoot) match {
           case (newRoot, side) => (changeKind(newRoot, Black), side)
         }
     }
-    new RedBlackTree[A,K,V](Some(newRootOption), itemKind)
+    new RedBlackTree[A,K,V](Some(newRootOption), getItemKind)
   }
   def insert(item: A, key: K, tree: RedBlackNode[A]): (RedBlackNode[A], Option[TreeSide]) = {
-    val position = itemKind.compare(itemKind.getKey(item), itemKind.getKey(tree.getItem))
+    val position = getItemKind.compare(getItemKind.getKey(item), getItemKind.getKey(tree.getItem))
     if (position < 0) {
       (insert(item, key, tree, LeftTreeSide), Some(LeftTreeSide))
     } else if (position > 0) {
@@ -28,19 +28,72 @@ class RedBlackTree[A, K <: Ordered[K], V](rootOption: Option[RedBlackNode[A]], i
     }
   }
   def insert(item: A, key: K, tree: RedBlackNode[A], side: TreeSide): RedBlackNode[A] = {
-    val pair: (RedBlackNode[A], Option[TreeSide]) =
-      tree.getParent(side) match {
-        case None => (getNodeFactory.createNode(None, item, None, tree.getNodeKind.getOther), None)
-        case Some(Left(parentItem)) =>
-          val parentTree = asTree(tree, side).get
-          insert(item, key, parentTree)
-        case Some(Right(parentTree)) =>
-          insert(item, key, parentTree)
+    (tree.getParent(side) match {
+      case None => (getNodeFactory.createNode(None, item, None, tree.getNodeKind.getOther), None)
+      case Some(Left(parentItem)) =>
+        val parentTree = asTree(tree, side).get
+        insert(item, key, parentTree)
+      case Some(Right(parentTree)) =>
+        insert(item, key, parentTree)
+    }) match {
+      case (newParent, childSideOption) =>
+        getSideOfNewDoubleRedEdgeNode(newParent, childSideOption) match {
+          case Some(childSide) =>
+            val alignedParent = if (childSide == side) newParent else swap(newParent, childSide, Red, Red)
+
+            val uncle = asTree(tree, side.getOther)
+            val uncleKind = (uncle map {
+              case uncleTree => uncleTree.getNodeKind
+            }).getOrElse(Black)
+            if (uncleKind == Red) {
+              val blackParent = changeKind(alignedParent, Black)
+              val blackUncleOption = uncle map (changeKind(_, Black))
+              changeKind(createGrandParent(Some(blackParent), createGrandParent(blackUncleOption, tree, side.getOther), side), Red)
+            } else {
+              val alignedGrandparent = createGrandParent(Some(alignedParent), tree, side)
+              swap(alignedGrandparent, side, Black, Red)
+            }
+          case _ =>
+            createGrandParent(Some(newParent), tree, side)
+        }
     }
-    // TODO: Bubble up rotations to balance the tree
-    (pair, side) match {
-      case ((newParent, childSide), LeftTreeSide) => getNodeFactory.createNode(Some(newParent), tree.getMiddle, asTree(tree, RightTreeSide), tree.getNodeKind)
-      case ((newParent, childSide), RightTreeSide) => getNodeFactory.createNode(asTree(tree, LeftTreeSide), tree.getMiddle, Some(newParent), tree.getNodeKind)
+  }
+  def getSideOfNewDoubleRedEdgeNode(parent: RedBlackNode[A], sideOption: Option[TreeSide]): Option[TreeSide] = {
+    (parent.getNodeKind match {
+      case Red =>
+        sideOption
+      case _ =>
+        None
+    }) flatMap {
+      case side =>
+        parent.getParent(side) flatMap {
+          case Left(_) => Some(side)
+          case Right(child) => if (child.getNodeKind == Red) Some(side) else None
+        }
+    }
+  }
+  def createGrandParent(newParent: Option[RedBlackNode[A]], tree: RedBlackNode[A], side: TreeSide): RedBlackNode[A] = {
+    side match {
+      case LeftTreeSide => getNodeFactory.createNode(newParent, tree.getMiddle, asTree(tree, RightTreeSide), tree.getNodeKind)
+      case RightTreeSide => getNodeFactory.createNode(asTree(tree, LeftTreeSide), tree.getMiddle, newParent, tree.getNodeKind)
+    }
+  }
+  def swap(parent: RedBlackNode[A], side: TreeSide, newParentKind: NodeKind, newChildKind: NodeKind) = {
+    val child = parent.getParent(side).get
+    val childTreeOption = child match {
+      case Left(_) => None
+      case Right(childTree) => Some(childTree)
+    }
+    val sameSideChild = childTreeOption flatMap (asTree(_, side))
+    val centerChild = childTreeOption flatMap (asTree(_, side.getOther))
+    val otherSide = asTree(parent, side.getOther)
+    side match {
+      case LeftTreeSide =>
+        val newChild = getNodeFactory.createNode(centerChild, parent.getMiddle, otherSide, newChildKind)
+        getNodeFactory.createNode(sameSideChild, child, Some(newChild), newParentKind)
+      case RightTreeSide =>
+        val newChild = getNodeFactory.createNode(otherSide, parent.getMiddle, centerChild, newChildKind)
+        getNodeFactory.createNode(Some(newChild), child, sameSideChild, newParentKind)
     }
   }
   def changeKind(node: RedBlackNode[A], kind: NodeKind): RedBlackNode[A] = {

@@ -2,7 +2,7 @@ package org.leialearns.crystallize.immutabletree
 
 import grizzled.slf4j.Logging
 
-class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends Iterator[A] with Logging {
+class TreeNodeIterator[A,T](rootOption: Option[TreeNodeTrait[A,T]]) extends Iterator[A] with Logging {
   var state: TreeNodeIteratorState[A,T] = rootOption match {
     case Some(root) => new TreeNodeIteratorInnerState[A,T] (None, root, BEFORE_LEFT)
     case _ => new TreeNodeIteratorEmptyState[A,T] ()
@@ -20,7 +20,7 @@ class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends
     while (state.isInner) {
       state match {
         case TreeNodeIteratorInnerState(_, stateNode, statePosition) =>
-          val nextStateProperties: (Option[Either[A,T]], Position) =
+          val nextStateProperties: (Option[Either[A,TreeNodeTrait[A,T]]], Position) =
             if (statePosition == BEFORE_LEFT) {
               (stateNode.getLeftNode, BEFORE_BUCKET)
             } else if (statePosition == BEFORE_BUCKET) {
@@ -62,25 +62,25 @@ class TreeNodeIterator[A,T <: TreeNodeTrait[A,T]](rootOption: Option[T]) extends
   }
 }
 
-sealed abstract class TreeNodeIteratorState[A,T <: TreeNodeTrait[A,T]](parentOption: Option[TreeNodeIteratorInnerState[A,T]], position: Position) {
+sealed abstract class TreeNodeIteratorState[A,T](parentOption: Option[TreeNodeIteratorInnerState[A,T]], position: Position) {
   def getParentOption = parentOption
   def getPosition = position
   def getRightNode: Option[Either[A,TreeNodeTrait[A,T]]]
   def isInner: Boolean
 }
-case class TreeNodeIteratorInnerState[A,T <: TreeNodeTrait[A,T]](parentOption: Option[TreeNodeIteratorInnerState[A,T]], node: TreeNodeTrait[A,T], position: Position) extends TreeNodeIteratorState[A,T](parentOption, position) {
+case class TreeNodeIteratorInnerState[A,T](parentOption: Option[TreeNodeIteratorInnerState[A,T]], node: TreeNodeTrait[A,T], position: Position) extends TreeNodeIteratorState[A,T](parentOption, position) {
   def getNode = node
   override def getRightNode = node.getRightNode
   override def isInner = true
   override def toString: String = s"[TreeNodeIteratorInnerState:${getParentOption map Function.const("!")}:$getNode:$getPosition]"
 }
-case class TreeNodeIteratorLeafState[A,T <: TreeNodeTrait[A,T]](parentOption: Option[TreeNodeIteratorInnerState[A,T]], item: A, position: Position) extends TreeNodeIteratorState[A,T](parentOption, position) {
+case class TreeNodeIteratorLeafState[A,T](parentOption: Option[TreeNodeIteratorInnerState[A,T]], item: A, position: Position) extends TreeNodeIteratorState[A,T](parentOption, position) {
   def getItem = item
   override def getRightNode = None
   override def isInner = false
   override def toString: String = s"[TreeNodeIteratorLeafState:${getParentOption map Function.const("!")}:$getItem:$getPosition]"
 }
-case class TreeNodeIteratorEmptyState[A,T <: TreeNodeTrait[A,T]]() extends TreeNodeIteratorState[A,T](None, DONE) {
+case class TreeNodeIteratorEmptyState[A,T]() extends TreeNodeIteratorState[A,T](None, DONE) {
   def getRightNode = None
   override def isInner = false
   override def toString: String = s"[TreeNodeIteratorEmptyState:${getParentOption map Function.const("!")}:EMPTY:$getPosition]"

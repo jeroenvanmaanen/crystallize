@@ -20,28 +20,105 @@ trait NodeFactory[A,T,V] {
 
 }
 
-abstract class Tree[A, T, V](_rootOption: Option[TreeNodeTrait[A,T] with T], _nodeFactory: NodeFactory[A,T,V]) extends Logging {
-  def getNodeFactory: NodeFactory[A,T,V] = _nodeFactory
+abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T], _nodeFactory: NodeFactory[A,T,C], _itemKind: ItemKind[A,K,V]) extends Logging {
+  def getItemKind = _itemKind
+  def getNodeFactory: NodeFactory[A,T,C] = _nodeFactory
   def getRoot: Option[TreeNodeTrait[A,T] with T] = _rootOption
-  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], middle: Either[A,TreeNodeTrait[A,T] with T], rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], middle: Either[A,TreeNodeTrait[A,T] with T], rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: C): TreeNodeTrait[A,T] with T = {
     val result = getNodeFactory.createNode(leftNodeOption, middle, rightNodeOption, variant)
     trace(s"Created node: ${dump(result, Nil)}")
     result
   }
-  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], bucket: TreeNodeTrait[A,T] with T, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], bucket: TreeNodeTrait[A,T] with T, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: C): TreeNodeTrait[A,T] with T = {
     val result = getNodeFactory.createNode(leftNodeOption, bucket, rightNodeOption, variant)
     trace(s"Created node: ${dump(result, Nil)}")
     result
   }
-  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], item: A, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: V): TreeNodeTrait[A,T] with T = {
+  def createNode(leftNodeOption: Option[TreeNodeTrait[A,T] with T], item: A, rightNodeOption: Option[TreeNodeTrait[A,T] with T], variant: C): TreeNodeTrait[A,T] with T = {
     val result: TreeNodeTrait[A,T] with T = getNodeFactory.createNode(leftNodeOption, item, rightNodeOption, variant)
     trace(s"Created item node: ${dump(result, Nil)}")
     result
   }
-  def createItemNode(variant: V, item: A): T = {
+  def createItemNode(variant: C, item: A): T = {
     createNode(None, item, None, variant)
   }
-  def insert(item: A): Tree[A,T,V]
+  def insert(item: A): Tree[A,K,V,T,C]
+  def find(key: K): Option[A] = {
+    find(_rootOption map (Right(_)), key)
+  }
+  def find(nodeOption: Option[Either[A,TreeNodeTrait[A,T]]], key: K): Option[A] = {
+    nodeOption flatMap (find(_, key))
+  }
+  def extractKey(bucket: TreeNodeTrait[A,T]): K = {
+    bucket.getMiddle match {
+      case Left(item) => getItemKind.getKey(item)
+      case Right(child) =>
+        if (child eq bucket) throw new IllegalStateException("Non-item bucket is its own bucket") else extractKey(child)
+    }
+  }
+  def find(either: Either[A,TreeNodeTrait[A,T]], key: K): Option[A] = {
+    either match {
+      case Left(item) => lookup(item, key)
+      case Right(tree) => find(tree, key)
+    }
+  }
+  def find(node: TreeNodeTrait[A,T], key: K): Option[A] = {
+    val order = getItemKind.compare(key, extractKey(node))
+    if (order < 0) {
+      find(node.getLeftNode, key)
+    } else if (order > 0) {
+      find(node.getRightNode, key)
+    } else {
+      lookup(Right(node), key)
+    }
+  }
+  def lookup(nodeOption: Option[Either[A,TreeNodeTrait[A,T]]], key: K): Option[A] = {
+    nodeOption flatMap (lookup(_, key))
+  }
+  def lookup(item: A, key: K): Option[A] = if (getItemKind.equals(key, getItemKind.getKey(item))) Some(item) else None
+  def lookup(either: Either[A,TreeNodeTrait[A,T]], key: K): Option[A] = {
+    either match {
+      case Left(item) =>
+        lookup(item, key)
+      case Right(node) =>
+        if (getItemKind.compare(getItemKind.getKey(node.getItem), key) == 0) {
+          val middleItem = lookupInBucket(node.getMiddle, key)
+          if (middleItem.isDefined) {
+            middleItem
+          } else {
+            val leftItem = node.getLeftNode flatMap (lookup(_, key))
+            if (leftItem.isDefined) {
+              leftItem
+            } else {
+              node.getRightNode flatMap (lookup(_, key))
+            }
+          }
+        } else {
+          None
+        }
+    }
+  }
+  def lookupInBucket(either: Either[A,TreeNodeTrait[A,T]], key: K): Option[A] = {
+    either match {
+      case Left(item) =>
+        lookup(item, key)
+      case Right(node) =>
+        val middleItem = lookupInBucket(node.getMiddle, key)
+        if (middleItem.isDefined) {
+          middleItem
+        } else {
+          val leftItem = node.getLeftNode flatMap (lookupInBucket(_,key))
+          if (leftItem.isDefined) {
+            leftItem
+          } else {
+            node.getRightNode flatMap (lookupInBucket(_,key))
+          }
+        }
+    }
+  }
+  def iterator: Iterator[A] = {
+    new TreeNodeIterator[A,T](_rootOption)
+  }
   def dump: String = {
     s"<t>${dump(getRoot map (Right(_)), Nil)}</t>"
   }

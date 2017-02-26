@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, FunSuite}
 class TestSimpleMap extends FunSuite with Matchers with LoggingConfiguration {
 
   test("Simple map") {
-    val empty = new SimpleMap[(String, Int), Int]()
+    val empty = SimpleMap.empty[(String,Int)]
     val single = empty + ((("M", 5), 1))
     assert(Some(1) == single.get(("M", 5)))
     val it = single.iterator
@@ -24,8 +24,14 @@ class TestSimpleMap extends FunSuite with Matchers with LoggingConfiguration {
         one == other
       }
     }
+    val testItemKind = new ItemKind[((String,Int), Any), (String,Int), Any] {
+      override def getKey(item: ((String, Int), Any)): (String,Int) = item._1
+      override def getValue(item: ((String, Int), Any)): Any = item._2
+      override def compare(one: (String,Int), other: (String,Int)): Int = one._1 compareTo other._1
+      override def equals(one: (String,Int), other: (String,Int)): Boolean = one == other
+    }
     info ("B")
-    val emptyMap = new SimpleMap[(String,Int),Int](testKeyKind)
+    val emptyMap = SimpleMap.newSimpleMap[(String,Int),Int](None, testItemKind)
     info ("C")
 
     var n = BigInt.int2bigInt(0)
