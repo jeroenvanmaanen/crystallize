@@ -104,7 +104,7 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
     }
   }
   def asTree[A2 <: A,T2 <: RedBlackNode[A]](parent: RedBlackNode[A], side: TreeSide): Option[RedBlackNode[A]] = {
-    parent.getParent(side) map (getNodeFactory.asTree(_, parent.getNodeKind.getOther))
+    parent.getParent(side) map (getNodeFactory.asTree(_, BucketKind))
   }
 }
 object RedBlackTree {
