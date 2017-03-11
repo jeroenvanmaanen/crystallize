@@ -51,6 +51,8 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
     testInsert(builder, "B-vvv-(1|one)-(2|two)-(3|three)-v-(10|ten)-", (20, "twenty"), "B-vvv-(1|one)-(2|two)-(3|three)-r-(10|ten)v-(20|twenty)-")
     testInsert(builder, "B-vvv-(1|one)-(2|two)-(3|three)-r-(10|ten)v-(20|twenty)-", (30, "thirty"), "bvvv-(1|one)-(2|two)-(3|three)-(10|ten)r-(20|twenty)v-(30|thirty)-")
     testInsert(builder, "bvvv-(1|one)-(2|two)-(3|three)-(10|ten)r-(20|twenty)v-(30|thirty)-", (100, "ratoes"), "brvvv-(1|one)-(2|two)-(3|three)-(10|ten)-(20|twenty)r-(30|thirty)v-(100|ratoes)-")
+    testInsert(builder, "brvvv-(1|one)-(2|two)-(3|three)-(10|ten)-(20|twenty)r-(30|thirty)v-(100|ratoes)-", (101, "ratoes satoe"), "brvvv-(1|one)-(2|two)-(3|three)-(10|ten)-(20|twenty)r-(30|thirty)vv-(100|ratoes)-(101|ratoes satoe)-")
+    testInsert(builder, "brvvv-(1|one)-(2|two)-(3|three)-(10|ten)-(20|twenty)r-(30|thirty)vv-(100|ratoes)-(101|ratoes satoe)-", (300, "tiga ratoes"), "bbvvv-(1|one)-(2|two)-(3|three)-(10|ten)-(20|twenty)b-(30|thirty)R-vv-(100|ratoes)-(101|ratoes satoe)-v-(300|tiga ratoes)-")
   }
 
   def testInsert(treeBuilder: RedBlackTreeBuilder[(Int, String), Int, String], specification: String, item: (Int, String), expectedSpecification: String) = {

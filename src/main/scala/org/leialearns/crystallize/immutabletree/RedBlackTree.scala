@@ -52,11 +52,10 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
         insert(item, key, parentTree)
     }) match {
       case (newParent, childSideOption) =>
-        val coloredParent = if (newParent.getNodeKind == BucketKind) changeKind(newParent, Red) else newParent
-        getSideOfNewDoubleRedEdgeNode(coloredParent, childSideOption) match {
+        val newChildSideOption = if (newParent.getNodeKind == BucketKind) None else getSideOfNewDoubleRedEdgeNode(newParent, childSideOption)
+        newChildSideOption match {
           case Some(childSide) =>
-            val alignedParent = if (childSide == side) coloredParent else swap(coloredParent, childSide, Red, Red)
-
+            val alignedParent = if (childSide == side) newParent else swap(newParent, childSide, Red, Red)
             val uncle = asTree(tree, side.getOther)
             val uncleKind = (uncle map {
               case uncleTree => uncleTree.getNodeKind
@@ -70,7 +69,7 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
               swap(alignedGrandparent, side, Black, Red)
             }
           case _ =>
-            replaceSide(Some(coloredParent), tree, side)
+            replaceSide(Some(newParent), tree, side)
         }
     }
   }
@@ -94,7 +93,7 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
       case RightTreeSide => getNodeFactory.createNode(asTree(tree, LeftTreeSide), tree.getMiddle, newChild, tree.getNodeKind)
     }
   }
-  def swap(parent: RedBlackNode[A], side: TreeSide, newParentKind: NodeKind, newChildKind: NodeKind) = {
+  def swap(parent: RedBlackNode[A], side: TreeSide, newParentKind: NodeKind, newChildKind: NodeKind): RedBlackNode[A] = {
     val child = parent.getChild(side).get
     val childTreeOption = child match {
       case Left(_) => None
