@@ -4,6 +4,8 @@ import org.leialearns.crystallize.immutabletree.blacknode.BlackNodeCases
 import org.leialearns.crystallize.immutabletree.bucketnode.BucketNodeCases
 import org.leialearns.crystallize.immutabletree.rednode.RedNodeCases
 
+import scala.collection.immutable
+
 class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]], _itemKind: ItemKind[A,K,V]) extends Tree[A,K,V,RedBlackNode[A],NodeKind](rootOption, RedBlackTree.nodeFactory[A], _itemKind) {
   override def insert(item: A): RedBlackTree[A, K, V] = {
     val (newRootOption, _) = rootOption match {
@@ -17,24 +19,27 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
   }
   def insert(item: A, key: K, tree: RedBlackNode[A]): (RedBlackNode[A], Option[TreeSide]) = {
     val position = getItemKind.compare(getItemKind.getKey(item), getItemKind.getKey(tree.getItem))
-    if (position < 0) {
-      if (tree.getNodeKind == BucketKind) {
-        val leftTree = getNodeFactory.createNode(None, item, None, BucketKind)
-        (getNodeFactory.createNode(Some(leftTree), tree, None, Red), Some(LeftTreeSide))
-      } else {
-        (insert(item, key, tree, LeftTreeSide), Some(LeftTreeSide))
-      }
+    if (tree.getNodeKind == BucketKind) {
+      insertWithBucket(item, key, tree, position)
+    } else if (position < 0) {
+      (insert(item, key, tree, LeftTreeSide), Some(LeftTreeSide))
     } else if (position > 0) {
-      if (tree.getNodeKind == BucketKind) {
-        val rightTree = getNodeFactory.createNode(None, item, None, BucketKind)
-        (getNodeFactory.createNode(None, tree, Some(rightTree), Red), Some(RightTreeSide))
-      } else {
-        (insert(item, key, tree, RightTreeSide), Some(RightTreeSide))
-      }
+      (insert(item, key, tree, RightTreeSide), Some(RightTreeSide))
     } else {
       val rightTree = getNodeFactory.asTree(tree.getMiddle, BucketKind)
-      val newBucket = getNodeFactory.createNode(None, item, Some(rightTree), BucketKind)
+      val newBucket = getNodeFactory.createNode(Some(rightTree), item, None, BucketKind)
       (getNodeFactory.createNode(asTree(tree, LeftTreeSide), Right(newBucket), asTree(tree, RightTreeSide), tree.getNodeKind), None)
+    }
+  }
+  def insertWithBucket(item: A, key: K, tree: RedBlackNode[A], position: Int): (RedBlackNode[A], Option[TreeSide]) = {
+    if (position < 0) {
+      val leftTree = getNodeFactory.createNode(None, item, None, BucketKind)
+      (getNodeFactory.createNode(Some(leftTree), tree, None, Red), Some(LeftTreeSide))
+    } else if (position > 0) {
+      val rightTree = getNodeFactory.createNode(None, item, None, BucketKind)
+      (getNodeFactory.createNode(None, tree, Some(rightTree), Red), Some(RightTreeSide))
+    } else {
+      (getNodeFactory.createNode(Some(tree), item, None, BucketKind), None)
     }
   }
   def insert(item: A, key: K, tree: RedBlackNode[A], side: TreeSide): RedBlackNode[A] = {
@@ -158,8 +163,9 @@ case object Red extends NodeKind(Black)
 case object Black extends NodeKind(Red)
 case object BucketKind extends NodeKind(null)
 
-abstract sealed class TreeSide(_other: TreeSide, _leftSide: NewNodePosition, _rightSide: NewNodePosition) {
-  def getOther = _other
+abstract sealed class TreeSide(_leftSide: NewNodePosition, _rightSide: NewNodePosition) {
+  import TreeSide.other
+  def getOther = other(this)
   def getLeftSide = _leftSide
   def getRightSide = _rightSide
   def getSide(side: TreeSide): NewNodePosition = side match {
@@ -167,8 +173,13 @@ abstract sealed class TreeSide(_other: TreeSide, _leftSide: NewNodePosition, _ri
     case RightTreeSide => _rightSide
   }
 }
-case object LeftTreeSide extends TreeSide(RightTreeSide, Leftmost, LeftCenter)
-case object RightTreeSide extends TreeSide(LeftTreeSide, RightCenter, Rightmost)
+case object LeftTreeSide extends TreeSide(Leftmost, LeftCenter)
+case object RightTreeSide extends TreeSide(RightCenter, Rightmost)
+object TreeSide {
+  val other: Map[TreeSide,TreeSide] = new immutable.HashMap[TreeSide, TreeSide] +
+    ((LeftTreeSide, RightTreeSide)) +
+    ((RightTreeSide, LeftTreeSide))
+}
 
 abstract sealed class NewNodePosition(_parentSide: TreeSide, _childSide: TreeSide) {
   def getParentSide = _parentSide

@@ -15,7 +15,6 @@ class TestSimpleMap extends FunSuite with Matchers with LoggingConfiguration {
   }
 
   test("Test a lot of trees") {
-    info ("A")
     val testKeyKind = new KeyKind[(String,Int)] {
       override def compare(one: (String, Int), other: (String, Int)): Int = {
         one._1 compareTo other._1
@@ -30,9 +29,7 @@ class TestSimpleMap extends FunSuite with Matchers with LoggingConfiguration {
       override def compare(one: (String,Int), other: (String,Int)): Int = one._1 compareTo other._1
       override def equals(one: (String,Int), other: (String,Int)): Boolean = one == other
     }
-    info ("B")
     val emptyMap = SimpleMap.newSimpleMap[(String,Int),Int](None, testItemKind)
-    info ("C")
 
     var n = BigInt.int2bigInt(0)
     val depth = 2

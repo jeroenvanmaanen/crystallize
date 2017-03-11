@@ -68,4 +68,7 @@ abstract class RedBlackTreeBuilder[A,K,V](_itemKind: ItemKind[A,K,V]) extends Lo
   def dump(node: TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]): String = {
     empty.dump(node, Nil)
   }
+  def dump(nodeOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]]): String = {
+    (nodeOption map dump).getOrElse("None")
+  }
 }
