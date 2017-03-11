@@ -122,25 +122,28 @@ abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T
   def dump: String = {
     s"<t>${dump(getRoot map (Right(_)), Nil)}</t>"
   }
-  def dump[B,T2](nodeOption: Option[Either[B,TreeNodeTrait[B,T2] with T2]], rootPath: List[AnyRef]): String = {
+  def dump[B,T2 <: T](nodeOption: Option[Either[B,TreeNodeTrait[B,T2] with T2]], rootPath: List[AnyRef]): String = {
     nodeOption match {
       case Some(Left(item)) => s"<n>$item</n>"
       case Some(Right(node)) => dump(node, rootPath)
       case _ => "<n/>"
     }
   }
-  def dump[B,T2](node: TreeNodeTrait[B,T2] with T2, rootPath: List[AnyRef]): String = {
+  def dump[B,T2 <: T](node: TreeNodeTrait[B,T2] with T2, rootPath: List[AnyRef]): String = {
     if (rootPath contains node) {
       s"<!-- ${node.toString} -->"
     } else {
       val subpath = node :: rootPath
+      val variantLabel: Option[String] = showVariant(node)
+      val variant: String = (variantLabel map (" v='" + _ + "'")).getOrElse("")
       (node.getLeftNode, node.getMiddle, node.getRightNode) match {
-        case (None, Left(item), None) => item.toString
-        case (left, Left(item), right) => s"<n>${dump(left, subpath)}<i>$item</i>${dump(right, subpath)}</n>"
-        case (left, Right(bucket), right) => s"<n>${dump(left, subpath)}<i>${dump(bucket, subpath)}</i>${dump(right, subpath)}</n>"
+        case (None, Left(item), None) => s"<b$variant>$item</b>"
+        case (left, Left(item), right) => s"<n>${dump(left, subpath)}<i$variant>$item</i>${dump(right, subpath)}</n>"
+        case (left, Right(bucket), right) => s"<n>${dump(left, subpath)}<i$variant>${dump(bucket, subpath)}</i>${dump(right, subpath)}</n>"
       }
     }
   }
+  def showVariant[B,T2 <: T](node: TreeNodeTrait[B,T2] with T2): Option[String] = None
 }
 
 abstract sealed class Offset {}
