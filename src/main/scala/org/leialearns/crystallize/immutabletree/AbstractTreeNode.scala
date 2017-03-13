@@ -11,7 +11,7 @@ trait NodeFactory[A,T,V] {
       case Right(tree) => createNode(leftNodeOption, tree, rightNodeOption, variant)
     }
   }
-  def asTree[A2 <: A,T2 <: T](either: Either[A2,T2], variant: V): T = {
+  def asTree[A2 <: A,T2 <: T](either: Either[A2,TreeNodeTrait[A2,T2] with T2], variant: V): TreeNodeTrait[A,T] with T = {
     either match {
       case Left(item) => createNode(None, item, None, variant)
       case Right(tree) => tree
@@ -20,7 +20,7 @@ trait NodeFactory[A,T,V] {
 
 }
 
-abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T], _nodeFactory: NodeFactory[A,T,C], _itemKind: ItemKind[A,K,V]) extends Logging {
+abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T], _nodeFactory: NodeFactory[A,T,C], _itemKind: ItemKind[A,K,V]) extends Iterable[A] with Logging {
   def getItemKind = _itemKind
   def getNodeFactory: NodeFactory[A,T,C] = _nodeFactory
   def getRoot: Option[TreeNodeTrait[A,T] with T] = _rootOption
@@ -116,9 +116,55 @@ abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T
         }
     }
   }
+  protected def getBucketContext: C
+  protected def replace(newItem: A, middle: Either[A,TreeNodeTrait[A,T] with T]): Either[A,TreeNodeTrait[A,T] with T] = {
+    middle match {
+      case Left(item) =>
+        if (getItemKind.equals(getItemKind.getKey(newItem), getItemKind.getKey(item))) {
+          Left(newItem)
+        } else {
+          Right(getNodeFactory.createNode(None, item, Some(getNodeFactory.createNode(None, newItem, None, getBucketContext)), getBucketContext))
+        }
+      case Right(tree) =>
+        Right(replace(newItem, tree))
+    }
+  }
+  protected def replace(item: A, treeNodeOption: Option[TreeNodeTrait[A,T] with T]): Option[TreeNodeTrait[A,T] with T] = {
+    treeNodeOption map (replace(item, _))
+  }
+  protected def replace(item: A, treeNode: TreeNodeTrait[A,T] with T): TreeNodeTrait[A,T] with T = {
+    val oldLeftNodeOption: Option[TreeNodeTrait[A,T] with T] = treeNode.getLeftNode map asBucket
+    val oldRightNodeOption: Option[TreeNodeTrait[A,T] with T] = treeNode.getRightNode map asBucket
+    val newLeftNodeOption = replace(item, oldLeftNodeOption)
+    val newRightNodeOption = replace(item, oldRightNodeOption)
+    treeNode.getMiddle match {
+      case Left(nodeItem) =>
+        val oldKey = getItemKind.getKey(nodeItem)
+        val newKey = getItemKind.getKey(item)
+        if (getItemKind.equals(newKey, oldKey)) {
+          createNode(newLeftNodeOption, item, newRightNodeOption, getBucketContext)
+        } else {
+          if (isSame(newLeftNodeOption, oldLeftNodeOption) && isSame(newRightNodeOption, oldRightNodeOption)) {
+            treeNode
+          } else {
+            createNode(newLeftNodeOption, nodeItem, newRightNodeOption, getBucketContext)
+          }
+        }
+      case Right(oldBucket) =>
+        val newBucket = replace(item, oldBucket)
+        if (isSame(newLeftNodeOption, oldLeftNodeOption) && (newBucket eq oldBucket) && isSame(newRightNodeOption, oldRightNodeOption)) {
+          treeNode
+        } else {
+          createNode(newLeftNodeOption, newBucket, newRightNodeOption, getBucketContext)
+        }
+    }
+  }
   def iterator: Iterator[A] = {
     new TreeNodeIterator[A,T](_rootOption)
   }
+
+  def asBucket(either: Either[A,TreeNodeTrait[A,T] with T]): TreeNodeTrait[A,T] with T = getNodeFactory.asTree(either, getBucketContext)
+
   def dump: String = {
     s"<t>${dump(getRoot map (Right(_)), Nil)}</t>"
   }
@@ -144,6 +190,21 @@ abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T
     }
   }
   def showVariant[B,T2 <: T](node: TreeNodeTrait[B,T2] with T2): Option[String] = None
+
+  protected def isSame[X <: AnyRef](aOption: Option[X], bOption: Option[X]): Boolean = {
+    (aOption, bOption) match {
+      case (Some(a), Some(b)) => a eq b
+      case (None, None) => true
+      case _ => false
+    }
+  }
+  protected def isSame[X <: AnyRef, Y <: AnyRef](aOption: Either[X,Y], bOption: Either[X,Y]): Boolean = {
+    (aOption, bOption) match {
+      case (Left(a), Left(b)) => a eq b
+      case (Right(a), Right(b)) => a eq b
+      case _ => false
+    }
+  }
 }
 
 abstract sealed class Offset {}

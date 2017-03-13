@@ -3,6 +3,8 @@ package org.leialearns.crystallize.immutabletree
 import org.leialearns.crystallize.util.LoggingConfiguration
 import org.scalatest.{FunSuite, Matchers}
 
+import scala.collection.immutable
+
 class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with LoggingConfiguration {
 
   test("swap") {
@@ -68,6 +70,81 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
     val expected = treeBuilder.createTree(expectedSpecification)._1
     info(s"Expected: ${treeBuilder.dump(expected)}")
     assert(compareNodes(after, expected))
+  }
+
+  test("equality") {
+    val itemKind = new MapItemKind[Int, String] {
+      override def compare(one: Int, other: Int) = (one / 10) compareTo (other / 10)
+    }
+    var currentRedBlackTree = new RedBlackTree[(Int, String),Int,String](None, itemKind)
+    var currentScalaMap = new immutable.HashMap[Int,String]
+    val random = scala.util.Random
+    val iterations = 100
+    val bound = (20 + iterations) / 3
+    for (n <- 1 to iterations) {
+      val label = s"n$n"
+      val x = random.nextInt(bound)
+      val pair = (x, label)
+      val newRedBlackTree = currentRedBlackTree.insert(pair)
+      val newScalaMap = currentScalaMap + pair
+      assert((newRedBlackTree.find(x) map (_._2)) == newScalaMap.get(x))
+
+      val count = compareItems(newRedBlackTree, newScalaMap, itemKind)
+      if (count != newScalaMap.size) {
+        info(s"Old red-black tree: ${currentRedBlackTree.dump}")
+        info(s"New red-black tree: ${newRedBlackTree.dump}")
+      }
+      assert(count == newScalaMap.size, s"Wrong size: $pair")
+      currentRedBlackTree = newRedBlackTree
+      currentScalaMap = newScalaMap
+    }
+/*
+    while (currentRedBlackTree.getRoot.isDefined) {
+      val currentNode = currentRedBlackTree.getRoot.get
+      var ancestors: List[TreeNodeTrait[(Int,String), RedBlackNode[(Int,String)] with RedBlackNode[(Int,String)]]] = currentNode :: Nil
+      var depth = 1
+      while (currentNode.getLeftNode.isDefined || currentNode.getRightNode.isDefined) {
+        val nextEither =
+          if (currentNode.getLeftNode.isEmpty) {
+            currentNode.getRightNode.get
+          } else if (currentNode.getRightNode.isEmpty) {
+            currentNode.getLeftNode.get
+          } else {
+            (if (random.nextBoolean()) currentNode.getLeftNode else currentNode.getRightNode).get
+          }
+        val nextTree = currentRedBlackTree.getNodeFactory.asTree(nextEither, BucketKind)
+        ancestors = nextTree :: ancestors
+      }
+      while (ancestors.drop(1).nonEmpty && random.nextBoolean()) {
+        ancestors = ancestors.drop(1)
+      }
+      if (ancestors.nonEmpty) {
+        val victim = ancestors(1).getItem._1
+        // remove key and compare
+      }
+    }
+// */
+  }
+
+  def compareItems(newRedBlackTree: RedBlackTree[(Int, String), Int, String], newScalaMap: Map[Int, String], itemKind: ItemKind[(Int, String), Int, String]): Int = {
+    var count = 0
+    var previousPairOption: Option[(Int, String)] = None
+    for (p: (Int, String) <- newRedBlackTree) {
+      count += 1
+      val thisKey = p._1
+      assert(newScalaMap.contains(thisKey))
+      previousPairOption match {
+        case Some(previousPair) =>
+          info(s"Pairs: $p: $previousPair")
+          val previousKey = previousPair._1
+          assert(!itemKind.equals(thisKey, previousKey), s"Same key: $previousPair: $p")
+          assert(itemKind.compare(thisKey, previousKey) >= 0, s"Wrong order: $previousPair: $p")
+        case _ => ()
+      }
+      previousPairOption = Some(p)
+    }
+
+    count
   }
 
   def bs(n: Int): String = {

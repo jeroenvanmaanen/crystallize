@@ -17,6 +17,7 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
     }
     new RedBlackTree[A,K,V](Some(newRootOption), getItemKind)
   }
+  override def getBucketContext = BucketKind
   def insert(item: A, key: K, tree: RedBlackNode[A]): (RedBlackNode[A], Option[TreeSide]) = {
     val position = getItemKind.compare(getItemKind.getKey(item), getItemKind.getKey(tree.getItem))
     if (tree.getNodeKind == BucketKind) {
@@ -26,8 +27,8 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
     } else if (position > 0) {
       (insert(item, key, tree, RightTreeSide), Some(RightTreeSide))
     } else {
-      val rightTree = getNodeFactory.asTree(tree.getMiddle, BucketKind)
-      val newBucket = getNodeFactory.createNode(Some(rightTree), item, None, BucketKind)
+      val oldBucket = getNodeFactory.asTree(tree.getMiddle, BucketKind)
+      val newBucket = insertWithBucket(item, key, oldBucket, 0)._1
       (getNodeFactory.createNode(asTree(tree, LeftTreeSide), Right(newBucket), asTree(tree, RightTreeSide), tree.getNodeKind), None)
     }
   }
@@ -39,7 +40,9 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
       val rightTree = getNodeFactory.createNode(None, item, None, BucketKind)
       (getNodeFactory.createNode(None, tree, Some(rightTree), Red), Some(RightTreeSide))
     } else {
-      (getNodeFactory.createNode(Some(tree), item, None, BucketKind), None)
+      val replaced = replace(item, tree)
+      val inserted = if (replaced eq tree) getNodeFactory.createNode(Some(tree), item, None, BucketKind) else replaced
+      (inserted, None)
     }
   }
   def insert(item: A, key: K, tree: RedBlackNode[A], side: TreeSide): RedBlackNode[A] = {

@@ -4,6 +4,7 @@ import grizzled.slf4j.Logging
 import org.leialearns.crystallize.immutabletree.simple.{Simple, SimpleCases}
 
 class SimpleTree[A <: AnyRef, K, V](rootOption: Option[TreeNodeTrait[A,Simple[A]] with Simple[A]], _itemKind: ItemKind[A,K,V]) extends Tree[A,K,V,Simple[A],Unit](rootOption, SimpleCases.nodeFactory[A], _itemKind) with Logging {
+  override def getBucketContext = ()
   override def insert(item: A) = {
     val newRoot = getRoot match {
       case Some(root) =>
@@ -40,48 +41,6 @@ class SimpleTree[A <: AnyRef, K, V](rootOption: Option[TreeNodeTrait[A,Simple[A]
         case (None, None) => asTree(newMiddle)
         case _ => createNode(treeNode.getLeftNode map asTree, newMiddle, treeNode.getRightNode map asTree, ())
       }
-    }
-  }
-  protected def replace(newItem: A, middle: Either[A,Simple[A]]): Either[A,Simple[A]] = {
-    middle match {
-      case Left(item) =>
-        if (getItemKind.equals(getItemKind.getKey(newItem), getItemKind.getKey(item))) {
-          Left(newItem)
-        } else {
-          Right(getNodeFactory.createNode(None, item, Some(getNodeFactory.createNode(None, newItem, None, ())), ()))
-        }
-      case Right(tree) =>
-        Right(replace(newItem, tree))
-    }
-  }
-  protected def replace(item: A, treeNodeOption: Option[Simple[A]]): Option[Simple[A]] = {
-    treeNodeOption map (replace(item, _))
-  }
-  protected def replace(item: A, treeNode: Simple[A]): Simple[A] = {
-    val oldLeftNodeOption = treeNode.getLeftNode map asTree
-    val oldRightNodeOption = treeNode.getRightNode map asTree
-    val newLeftNodeOption = replace(item, oldLeftNodeOption)
-    val newRightNodeOption = replace(item, oldRightNodeOption)
-    treeNode.getMiddle match {
-      case Left(nodeItem) =>
-        val oldKey = getItemKind.getKey(nodeItem)
-        val newKey = getItemKind.getKey(item)
-        if (getItemKind.equals(newKey, oldKey)) {
-          createNode(newLeftNodeOption, item, newRightNodeOption, ())
-        } else {
-          if (isSame(newLeftNodeOption, oldLeftNodeOption) && isSame(newRightNodeOption, oldRightNodeOption)) {
-            treeNode
-          } else {
-            createNode(newLeftNodeOption, nodeItem, newRightNodeOption, ())
-          }
-        }
-      case Right(oldBucket) =>
-        val newBucket = replace(item, oldBucket)
-        if (isSame(newLeftNodeOption, oldLeftNodeOption) && (newBucket eq oldBucket) && isSame(newRightNodeOption, oldRightNodeOption)) {
-          treeNode
-        } else {
-          createNode(newLeftNodeOption, newBucket, newRightNodeOption, ())
-        }
     }
   }
 
@@ -185,21 +144,6 @@ class SimpleTree[A <: AnyRef, K, V](rootOption: Option[TreeNodeTrait[A,Simple[A]
                 (item, remainder)
             }
         }
-    }
-  }
-
-  protected def isSame[X <: AnyRef](aOption: Option[X], bOption: Option[X]): Boolean = {
-    (aOption, bOption) match {
-      case (Some(a), Some(b)) => a eq b
-      case (None, None) => true
-      case _ => false
-    }
-  }
-  protected def isSame[X <: AnyRef, Y <: AnyRef](aOption: Either[X,Y], bOption: Either[X,Y]): Boolean = {
-    (aOption, bOption) match {
-      case (Left(a), Left(b)) => a eq b
-      case (Right(a), Right(b)) => a eq b
-      case _ => false
     }
   }
 }
