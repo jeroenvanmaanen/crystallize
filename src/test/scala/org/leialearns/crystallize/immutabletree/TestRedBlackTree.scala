@@ -11,6 +11,7 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
     val builder = new RedBlackTreeBuilder[String,String,Unit](new SetItemKind[String] {}) {
       override def itemTokenLength(specification: String): Int = 1
       override def createItem(itemToken: String): String = itemToken
+      override def serializeItem(item: String): String = item.substring(0, 1)
     }
     testSwap(builder, "rbv-C-Bv-D-Av-E-", "rv-C-Bvv-D-Av-E-")
     testSwap(builder, s"Rbv-C-Bv-D-${bs(1)}v-E-", s"rv-C-BVv-D-${bs(1)}v-E-")
@@ -29,22 +30,7 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
   }
 
   test("insert") {
-    val itemKind = new MapItemKind[Int, String] {
-      override def compare(one: Int, other: Int) = (one / 10) compareTo (other / 10)
-    }
-    val builder = new RedBlackTreeBuilder[(Int, String),Int,String](itemKind) {
-      val tokenRegex = "^[(]([^|]*)[|]([^)]*)[)]".r
-      override def itemTokenLength(specification: String): Int = (tokenRegex.findFirstMatchIn(specification) map { case m => m.end(0) }).getOrElse(0)
-      override def createItem(itemToken: String): (Int,String) = {
-        val matchOption = tokenRegex.findFirstMatchIn(itemToken)
-        matchOption match {
-          case Some(m) =>
-            (m.group(1).toInt, m.group(2))
-          case _ =>
-            (0, itemToken)
-        }
-      }
-    }
+    val builder = createTreeBuilder(10)
 
     testInsert(builder, "-", (1, "one"), "b-(1|one)-")
     testInsert(builder, "b-(1|one)-", (2, "two"), "vv-(1|one)-(2|two)-")
@@ -73,13 +59,12 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
   }
 
   test("equality") {
-    val itemKind = new MapItemKind[Int, String] {
-      override def compare(one: Int, other: Int) = (one / 10) compareTo (other / 10)
-    }
+    val treeBuilder = createTreeBuilder(3)
+    val itemKind = treeBuilder.getItemKind
     var currentRedBlackTree = new RedBlackTree[(Int, String),Int,String](None, itemKind)
     var currentScalaMap = new immutable.HashMap[Int,String]
     val random = scala.util.Random
-    val iterations = 100
+    val iterations = 3000
     val bound = (20 + iterations) / 3
     for (n <- 1 to iterations) {
       val label = s"n$n"
@@ -88,6 +73,8 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
       val newRedBlackTree = currentRedBlackTree.insert(pair)
       val newScalaMap = currentScalaMap + pair
       assert((newRedBlackTree.find(x) map (_._2)) == newScalaMap.get(x))
+
+      newRedBlackTree.verifyBalance()
 
       val count = compareItems(newRedBlackTree, newScalaMap, itemKind)
       if (count != newScalaMap.size) {
@@ -98,11 +85,13 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
       currentRedBlackTree = newRedBlackTree
       currentScalaMap = newScalaMap
     }
-/*
+//*
+    checkRemove(treeBuilder, 11, "bBv-(3|n67})-vv-(7|n23})-(8|n50})--(11|n15})RBRvv-(14|n76})-(12|n95})-vvv-(17|n69})-(15|n89})-(16|n44})--vv-(20|n63})-(18|n66})--vvv-(25|n75})-(24|n48})-(26|n86})-Brvv-(27|n99})-(28|n85})-(32|n100})v-(34|n51})-vvv-(36|n96})-(37|n17})-(38|n57})--")
+
+    var treeSize: Int = currentRedBlackTree.size
     while (currentRedBlackTree.getRoot.isDefined) {
-      val currentNode = currentRedBlackTree.getRoot.get
+      var currentNode = currentRedBlackTree.getRoot.get
       var ancestors: List[TreeNodeTrait[(Int,String), RedBlackNode[(Int,String)] with RedBlackNode[(Int,String)]]] = currentNode :: Nil
-      var depth = 1
       while (currentNode.getLeftNode.isDefined || currentNode.getRightNode.isDefined) {
         val nextEither =
           if (currentNode.getLeftNode.isEmpty) {
@@ -112,18 +101,75 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
           } else {
             (if (random.nextBoolean()) currentNode.getLeftNode else currentNode.getRightNode).get
           }
-        val nextTree = currentRedBlackTree.getNodeFactory.asTree(nextEither, BucketKind)
-        ancestors = nextTree :: ancestors
+        currentNode = currentRedBlackTree.getNodeFactory.asTree(nextEither, BucketKind)
+        ancestors = currentNode :: ancestors
       }
       while (ancestors.drop(1).nonEmpty && random.nextBoolean()) {
         ancestors = ancestors.drop(1)
       }
       if (ancestors.nonEmpty) {
-        val victim = ancestors(1).getItem._1
-        // remove key and compare
+        val victim = ancestors(0).getItem._1
+        val expectedSize = treeSize - 1
+        currentRedBlackTree = checkRemove(treeBuilder, victim, expectedSize, currentRedBlackTree)
+        treeSize = expectedSize
       }
     }
 // */
+  }
+
+  def checkRemove(treeBuilder: RedBlackTreeBuilder[(Int,String),Int,String], victim: Int, specification: String): Option[RedBlackNode[(Int,String)]] = {
+    val treeOption = treeBuilder.createTree(specification)._1
+    val tree = new RedBlackTree[(Int,String),Int,String](treeOption, treeBuilder.getItemKind)
+    val oldSize = tree.size
+    tree.verifyBalance()
+    checkRemove(treeBuilder, victim, oldSize - 1, tree)
+    tree.getRoot
+  }
+
+  def checkRemove(treeBuilder: RedBlackTreeBuilder[(Int,String),Int,String], victim: Int, expectedSize: Int, tree: RedBlackTree[(Int,String),Int,String]): RedBlackTree[(Int,String),Int,String] = {
+    var result: Option[RedBlackTree[(Int,String),Int,String]] = None
+    try {
+      info(s"Removing: $victim")
+      val smallerRedBlackTree = tree.remove(victim)
+      result = Some(smallerRedBlackTree)
+      assert(smallerRedBlackTree.size == expectedSize)
+      // smallerRedBlackTree.verifyBalance()
+      for (item <- smallerRedBlackTree) {
+        val key = treeBuilder.getItemKind.getKey(item)
+        assert(smallerRedBlackTree.find(key).isDefined, s"Could not find: $key")
+      }
+      smallerRedBlackTree
+    } catch {
+      case exception: Throwable =>
+        info(s"Exception while removing key: $victim: $exception")
+        info(s"Tree specification: ${treeBuilder.serializeTree(tree.getRoot)}")
+        info(s"Original tree dump: ${tree.dump}")
+        info(s"Result tree dump: ${((result flatMap (_.getRoot)) map (tree.dump(_, Nil))).getOrElse("None")}")
+        throw exception
+    }
+  }
+
+  def createTreeBuilder(fudge: Int) = {
+    val itemKind = new MapItemKind[Int, String] {
+      override def compare(one: Int, other: Int) = (one / fudge) compareTo (other / fudge)
+    }
+    val builder = new RedBlackTreeBuilder[(Int, String),Int,String](itemKind) {
+      val tokenRegex = "^[(]([^|]*)[|]([^)]*)[)]".r
+      override def itemTokenLength(specification: String): Int = (tokenRegex.findFirstMatchIn(specification) map { case m => m.end(0) }).getOrElse(0)
+      override def createItem(itemToken: String): (Int,String) = {
+        val matchOption = tokenRegex.findFirstMatchIn(itemToken)
+        matchOption match {
+          case Some(m) =>
+            (m.group(1).toInt, m.group(2))
+          case _ =>
+            (0, itemToken)
+        }
+      }
+      override def serializeItem(item: (Int,String)): String = {
+        s"(${item._1}|${item._2}})"
+      }
+    }
+    builder
   }
 
   def compareItems(newRedBlackTree: RedBlackTree[(Int, String), Int, String], newScalaMap: Map[Int, String], itemKind: ItemKind[(Int, String), Int, String]): Int = {
@@ -135,7 +181,7 @@ class TestRedBlackTree extends FunSuite with TreeTestTrait with Matchers with Lo
       assert(newScalaMap.contains(thisKey))
       previousPairOption match {
         case Some(previousPair) =>
-          info(s"Pairs: $p: $previousPair")
+          getLogger(classOf[TestRedBlackTree]).trace(s"Pairs: $p: $previousPair")
           val previousKey = previousPair._1
           assert(!itemKind.equals(thisKey, previousKey), s"Same key: $previousPair: $p")
           assert(itemKind.compare(thisKey, previousKey) >= 0, s"Wrong order: $previousPair: $p")

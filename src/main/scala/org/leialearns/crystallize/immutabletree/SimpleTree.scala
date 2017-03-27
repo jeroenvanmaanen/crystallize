@@ -44,7 +44,11 @@ class SimpleTree[A <: AnyRef, K, V](rootOption: Option[TreeNodeTrait[A,Simple[A]
     }
   }
 
-  def remove(key: K, node: Simple[A]): Option[Simple[A]] = {
+  override def remove(key: K): SimpleTree[A,K,V] = {
+    val newRootOption = rootOption flatMap (remove(key,_))
+    if (isSame(newRootOption, rootOption)) this else new SimpleTree[A,K,V](newRootOption, _itemKind)
+  }
+  def remove(key: K, node: Simple[A]): Option[TreeNodeTrait[A,Simple[A]] with Simple[A]] = {
     val nodeKey = extractKey(node)
     val order = getItemKind.compare(key, nodeKey)
     if (order < 0) {

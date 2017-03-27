@@ -8,9 +8,13 @@ abstract class RedBlackTreeBuilder[A,K,V](_itemKind: ItemKind[A,K,V]) extends Lo
   val logger = getLogger(getClass)
   val empty = new RedBlackTree[A,K,V](None, _itemKind)
 
+  def getItemKind = _itemKind
+
   def itemTokenLength(specification: String): Int
 
   def createItem(itemToken: String): A
+
+  def serializeItem(item: A): String
 
   def createTree(specification: String): (Option[RedBlackNode[A]], String) = {
     logger.trace(s"Create tree: $specification")
@@ -70,5 +74,34 @@ abstract class RedBlackTreeBuilder[A,K,V](_itemKind: ItemKind[A,K,V]) extends Lo
   }
   def dump(nodeOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]]): String = {
     (nodeOption map dump).getOrElse("None")
+  }
+
+  def serializeEither(treeOption: Option[Either[A,TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]]]): String = {
+    (treeOption map serializeEither).getOrElse("-")
+  }
+  def serializeTree(treeOption: Option[TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]]): String = {
+    (treeOption map serializeTree).getOrElse("-")
+  }
+  def serializeEither(treeEither: Either[A,TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]]): String = {
+    treeEither match {
+      case Left(item) => serializeTree(item)
+      case Right(tree) => serializeTree(tree)
+    }
+  }
+  def serializeTree(tree: TreeNodeTrait[A,RedBlackNode[A]] with RedBlackNode[A]): String = {
+    val kindCode = tree.getNodeKind match {
+      case Red => "R"
+      case Black => "B"
+      case BucketKind => "V"
+    }
+    val middle = tree.getMiddle
+    val (nodeCode, serializedMiddle) = middle match {
+      case Left(item) => (kindCode.toLowerCase, serializeItem(item))
+      case Right(middleTree) => (kindCode.toUpperCase, serializeTree(middleTree))
+    }
+    s"$nodeCode${serializeEither(tree.getLeftNode)}$serializedMiddle${serializeEither(tree.getRightNode)}"
+  }
+  def serializeTree(item: A): String = {
+    s"v-${serializeItem(item)}-"
   }
 }

@@ -90,6 +90,137 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
         }
     }
   }
+
+  override def remove(key: K): RedBlackTree[A,K,V] = {
+    val newRootOption = (rootOption flatMap (remove(key, _))) map (getNodeFactory.asTree(_, Black))
+    new RedBlackTree[A,K,V](newRootOption, _itemKind)
+  }
+  def remove(key: K, node: RedBlackNode[A]): Option[Either[A,RedBlackNode[A]]] = {
+    if (node.getNodeKind == BucketKind) {
+      removeFromBucket(key, node)
+    } else {
+      val position = getItemKind.compare(key, getItemKind.getKey(node.getItem))
+      if (position < 0) {
+        val newLeftOption = remove(key, node, LeftTreeSide)
+        if (isSame(newLeftOption, node.getLeftNode)) {
+          Some(Right(node))
+        } else {
+          val newLeftNode = newLeftOption map (getNodeFactory.asTree(_, BucketKind))
+          Some(Right(getNodeFactory.createNode(newLeftNode, node.getMiddle, asTree(node, RightTreeSide), node.getNodeKind)))
+        }
+      } else if (position > 0) {
+        val newRightOption = remove(key, node, RightTreeSide)
+        if (isSame(newRightOption, node.getRightNode)) {
+          Some(Right(node))
+        } else {
+          val newRightNode = newRightOption map (getNodeFactory.asTree(_, BucketKind))
+          Some(Right(getNodeFactory.createNode(asTree(node, LeftTreeSide), node.getMiddle, newRightNode, node.getNodeKind)))
+        }
+      } else if (node.getNodeKind == BucketKind) {
+        removeFromBucket(key, node)
+      } else {
+        val oldMiddle = node.getMiddle
+        val newMiddleOption: Option[Either[A,RedBlackNode[A]]] =
+          oldMiddle match {
+            case Left(item) => if (getItemKind.equals(key, getItemKind.getKey(item))) None else Some(oldMiddle)
+            case Right(bucket) => removeFromBucket(key, bucket)
+          }
+        newMiddleOption match {
+          case Some(newMiddle) =>
+            if (newMiddle eq oldMiddle) {
+              Some(Right(node))
+            } else {
+              (node.getLeftNode, node.getRightNode) match {
+                case (None, None) => Some(newMiddle)
+                case _ => Some(Right(getNodeFactory.createNode(asTree(node, LeftTreeSide), newMiddle, asTree(node, RightTreeSide), node.getNodeKind)))
+              }
+            }
+          case _ =>
+            if (node.getLeftNode.isEmpty) {
+              node.getRightNode
+            } else if (node.getRightNode.isEmpty) {
+              node.getLeftNode
+            } else {
+              val newRightTriple = removeLeftMost(node.getRightNode.get)
+              // Todo: Rebalance
+              Some(Right(getNodeFactory.createNode(node.getLeftNode map (getNodeFactory.asTree(_, BucketKind)), newRightTriple._1, newRightTriple._2 map (getNodeFactory.asTree(_, BucketKind)), node.getNodeKind)))
+              // newRightTriple._2
+            }
+        }
+      }
+    }
+  }
+  def remove(key: K, node: RedBlackNode[A], side: TreeSide): Option[Either[A,RedBlackNode[A]]] = {
+    val result = asTree(node, side) flatMap (remove(key, _))
+    result match {
+      case Some(Right(tree)) =>
+        if (tree.getNodeKind == BucketKind && node.getNodeKind == Red && tree.size == 1) {
+          Some(Right(changeKind(tree, Black)))
+        } else {
+          result
+        }
+      case _ => result
+    }
+  }
+  def removeLeftMost(either: Either[A,RedBlackNode[A]]): (Either[A,RedBlackNode[A]], Option[Either[A,RedBlackNode[A]]], Boolean) = {
+    either match {
+      case Left(item) => (either, None, false)
+      case Right(tree) =>
+        val leftOption = if (tree.getNodeKind == BucketKind) None else tree.getLeftNode
+        leftOption match {
+          case Some(left) =>
+            removeLeftMost(left) match {
+              case (leftMostBucket, Some(Left(newLeftItem)), short) =>
+                (leftMostBucket, Some(Right(replaceSide(Some(getNodeFactory.asTree(Left(newLeftItem), BucketKind)), tree, LeftTreeSide))), short)
+              case (leftMostBucket, Some(Right(newLeftTree)), short) =>
+                val recolored = if (newLeftTree.getNodeKind == BucketKind && tree.getNodeKind == Red && newLeftTree.size == 1) {
+                  changeKind(newLeftTree, Black)
+                } else {
+                  newLeftTree
+                }
+                val replacedSide = replaceSide(Some(recolored), tree, LeftTreeSide)
+                (leftMostBucket, Some(Right(replacedSide)), short)
+              case (leftMostBucket, None, short) =>
+                val rightEitherOption = tree.getRightNode
+                rightEitherOption match {
+                  case Some(right) =>
+                    val rightTreeOption = rightEitherOption map (getNodeFactory.asTree(_,BucketKind))
+                    val newNode: RedBlackNode[A] = getNodeFactory.createNode(None, tree.getMiddle, rightTreeOption, tree.getNodeKind)
+                    // Todo: Rebalance
+                    (leftMostBucket, Some(Right(newNode)), short || (right match { case Left(_) => false ; case Right(r) => r.getNodeKind == Black }))
+                  case _ =>
+                    val newMiddle: Either[A,RedBlackNode[A]] = tree.getMiddle
+                    (leftMostBucket, Some(newMiddle), short)
+                }
+            }
+          case _ =>
+            if (tree.getNodeKind == BucketKind) {
+              (Right(tree), None, false)
+            } else {
+              (tree.getMiddle, tree.getRightNode, tree.getNodeKind == Black)
+            }
+        }
+    }
+  }
+  def removeFromBucket(key: K, node: RedBlackNode[A]): Option[Either[A,RedBlackNode[A]]] = {
+    val newLeft = (node.getLeftNode flatMap (removeFromBucket(key, _))) map (getNodeFactory.asTree(_, BucketKind))
+    val newMiddle = removeFromBucket(key, node.getMiddle)
+    val newRight = (node.getRightNode flatMap (removeFromBucket(key, _))) map (getNodeFactory.asTree(_, BucketKind))
+    (newLeft, newMiddle, newRight) match {
+      case (None, None, None) => None
+      case (Some(newBucket), None, _) => Some(Right(getNodeFactory.createNode(None, newBucket, newRight, BucketKind)))
+      case (_, None, Some(newBucket)) => Some(Right(getNodeFactory.createNode(newLeft, newBucket, None, BucketKind)))
+      case (None, Some(_), None) => newMiddle
+      case (_, Some(newBucket), _) => Some(Right(getNodeFactory.createNode(newLeft, newBucket, newRight, BucketKind)))
+    }
+  }
+  def removeFromBucket(key: K, either: Either[A,RedBlackNode[A]]): Option[Either[A,RedBlackNode[A]]] = {
+    either match {
+      case Left(item) => if (getItemKind.equals(key, getItemKind.getKey(item))) None else Some(either)
+      case Right(bucket) => removeFromBucket(key, bucket)
+    }
+  }
+
   def replaceSide(newChild: Option[RedBlackNode[A]], tree: RedBlackNode[A], side: TreeSide): RedBlackNode[A] = {
     side match {
       case LeftTreeSide => getNodeFactory.createNode(newChild, tree.getMiddle, asTree(tree, RightTreeSide), tree.getNodeKind)
@@ -128,7 +259,7 @@ class RedBlackTree[A, K, V](rootOption: Option[TreeNodeTrait[A,RedBlackNode[A]] 
     result
   }
   def verifyBalance(): Unit = {
-    val blackDepth = (rootOption map (_.verifyBlackDepth())).getOrElse(0)
+    val blackDepth = (rootOption map (_.verifyBlackDepth(_itemKind))).getOrElse(0)
     debug(s"Verified black depth: $blackDepth")
   }
   override def showVariant[B,T2 <: RedBlackNode[A]](node: TreeNodeTrait[B,T2] with T2): Option[String] = {
@@ -216,16 +347,43 @@ trait RedBlackNode[+A] extends TreeNodeTrait[A,RedBlackNode[A]] with HasNodeKind
   def getNewNodeUncle(newNodePosition: NewNodePosition): Option[Either[A,RedBlackNode[A]]] = {
     getChild(newNodePosition.getParentSide.getOther)
   }
-  def verifyBlackDepth(): Int = {
+  def verifyBlackDepth[A2 >: A, K](itemKind: ItemKind[A2,K,_]): Int = {
     val getBranchDepth: (Either[A,RedBlackNode[A]]) => Int = {
       case Left(item) => 0
-      case Right(tree) => tree.verifyBlackDepth()
+      case Right(tree) => tree.verifyBlackDepth(itemKind)
     }
     val leftDepth = (getLeftNode map getBranchDepth).getOrElse(0)
     val rightDepth = (getLeftNode map getBranchDepth).getOrElse(0)
     if (leftDepth != rightDepth) {
       throw new IllegalStateException(s"Unbalanced tree: $leftDepth: $rightDepth: $this")
     }
-    leftDepth
+    val key: K = itemKind.getKey(getItem)
+    val checkKeys: (K, TreeSide) => Unit = {
+      case (childKey, side) =>
+        if (itemKind.equals(childKey, key)) throw new IllegalStateException(s"Keys are equal: $key ($side) $childKey")
+        val order = itemKind.compare(childKey, key)
+        if (getNodeKind == BucketKind) {
+          if (order != 0) throw new IllegalStateException(s"Keys are different: $key ($side|$order) $childKey")
+        } else {
+          if (order == 0) throw new IllegalStateException(s"Keys are equivalent: $key ($side) $childKey")
+        }
+    }
+    val checkChild: TreeSide => Unit = {
+      case side =>
+        getChild(side) match {
+          case Some(Left(item)) =>
+            val childKey: K = itemKind.getKey(item)
+            checkKeys(childKey, side)
+          case Some(Right(tree)) =>
+            if (getNodeKind == Red && tree.getNodeKind == Red) throw new IllegalStateException(s"Red node has Red child: $getItem: $side")
+            val childKey: K = itemKind.getKey(tree.getItem)
+            checkKeys(childKey, side)
+          case None =>
+            ()
+        }
+    }
+    checkChild(LeftTreeSide)
+    checkChild(RightTreeSide)
+    leftDepth + (if (getNodeKind == Black) 1 else 0)
   }
 }

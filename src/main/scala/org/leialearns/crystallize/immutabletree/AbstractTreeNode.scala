@@ -43,6 +43,7 @@ abstract class Tree[A, K, V, T, C](_rootOption: Option[TreeNodeTrait[A,T] with T
     createNode(None, item, None, variant)
   }
   def insert(item: A): Tree[A,K,V,T,C]
+  def remove(key: K): Tree[A,K,V,T,C]
   def find(key: K): Option[A] = {
     find(_rootOption map (Right(_)), key)
   }
@@ -232,6 +233,13 @@ trait TreeNodeTrait[+A, +T] {
     either match {
       case Right(tree) => Some(tree)
       case _ => None
+    }
+  }
+  def size: Int = {
+    List(getLeftNode, Some(getMiddle), getRightNode).foldLeft(0) {
+      case (count, Some(Left(item))) => count + 1
+      case (count, Some(Right(tree))) => count + tree.size
+      case (count, None) => count
     }
   }
 }
