@@ -34,3 +34,6 @@ class ItemCounts(_map: immutable.HashMap[Item,Long], _total: Long) extends DumpC
       ("total" -> total)
   }
 }
+object ItemCounts {
+  val EMPTY = new ItemCounts(immutable.HashMap.empty, 0)
+}

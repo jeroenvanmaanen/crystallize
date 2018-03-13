@@ -1,10 +1,13 @@
 package org.leialearns.crystallize.item
 
 import org.leialearns.crystallize.util.{Intern, Internalizable, Sortable}
+import org.leialearns.crystallize.event.State
+import org.leialearns.crystallize.item.Node._
 
-class Node private (_parent: Option[Node], _item: Item) extends Sortable with Internalizable {
+class Node private (_parent: Option[Node], _item: Item) extends Sortable with Internalizable with State {
   val parent = _parent
   val item = _item
+  var extensible = false
 
   def depth: Long = {
     parent match {
@@ -25,6 +28,27 @@ class Node private (_parent: Option[Node], _item: Item) extends Sortable with In
 
   override def sortKey = {
     (if (parent.isDefined) parent.get.sortKey + " < " else "") + item.toString
+  }
+
+  override def impliedStates() = parent.iterator
+
+  override def markExtensible() = {
+    extensible = true
+  }
+
+  override def isExtensible() = extensible
+
+  def update(next: Item): Node = {
+    val newParent = parent.map(p => p.update(next)).getOrElse(getNode(next))
+    val result = if (newParent.isExtensible()) {
+      getNode(newParent, item)
+    } else {
+      newParent
+    }
+    if (result.isExtensible()) {
+      markExtensible()
+    }
+    result
   }
 }
 
