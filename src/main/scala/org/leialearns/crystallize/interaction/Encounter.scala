@@ -1,11 +1,9 @@
 package org.leialearns.crystallize.interaction
 
 import grizzled.slf4j.Logging
-import org.leialearns.crystallize.{Location, Crystal}
 import org.leialearns.crystallize.event.History
 import org.leialearns.crystallize.item.{Item, Node}
-import org.leialearns.crystallize.model.{ItemCounts, Extensible, MaxDepth, Observed}
-import org.leialearns.crystallize.state.{State, ConsolidateState}
+import org.leialearns.crystallize.model.ItemCounts
 import org.leialearns.crystallize.util.Marker
 
 import scala.collection.immutable
