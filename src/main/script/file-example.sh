@@ -45,5 +45,5 @@ log "CLASS_PATH=[${CLASS_PATH}]"
 
 (
     cd "${PROJECT}"
-    "${JAVA_HOME}/bin/java" -cp "${CLASS_PATH}" -Djava.util.logging.config.file="${SRC}/test/resources/logging.properties" org.leialearns.crystallize.interaction.FileExample "$@" data/kjv-10-simplified.txt
+    time "${JAVA_HOME}/bin/java" -cp "${CLASS_PATH}" -Djava.util.logging.config.file="${SRC}/test/resources/logging.properties" org.leialearns.crystallize.interaction.FileExample "$@" data/kjv-10-simplified.txt
 )

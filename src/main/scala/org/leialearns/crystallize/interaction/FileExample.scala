@@ -4,7 +4,6 @@ import java.lang.invoke.MethodHandles
 import org.leialearns.crystallize.Crystal
 import org.leialearns.crystallize.event.History
 import org.leialearns.crystallize.item.Category
-import org.leialearns.crystallize.model.{ExtensiblePropagator, MaxDepth}
 import org.leialearns.crystallize.reader.TokenSource
 import org.leialearns.crystallize.util.{Dump, LoggingConfiguration}
 
