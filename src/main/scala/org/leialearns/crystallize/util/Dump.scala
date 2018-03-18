@@ -5,6 +5,7 @@ object Dump {
     thing match {
       case custom: DumpCustom => dump(prefix, custom.dumpAs)
       case Some(item) => dump(prefix + "! ", item)
+      case None => dump(prefix, "NONE")
       case map: Map[_,_] => dumpMap(prefix, map)
       case iterable: Iterable[_] => dumpIterable(prefix, iterable)
       case iterator: Iterator[_] => dumpIterator(prefix, "[[", "]]", iterator)

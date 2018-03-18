@@ -5,6 +5,7 @@ import org.leialearns.crystallize.event.History
 import org.leialearns.crystallize.item.Category
 import org.leialearns.crystallize.reader.TokenSource
 import org.leialearns.crystallize.util.{Dump, LoggingConfiguration}
+import org.leialearns.crystallize.util.Oracle.oracle
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
@@ -15,6 +16,7 @@ object FileExample {
 
   def main(args: Array[String]): Unit = {
     logger.info("FileExample")
+    logger.info(s"Oracle: ${oracle}")
     var limit: Option[Long] = None
     var optIndex = 0
     if (args(0) == "-l") {
