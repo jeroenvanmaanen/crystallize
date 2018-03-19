@@ -9,6 +9,7 @@ import org.leialearns.crystallize.util.Oracle.oracle
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
+import scala.util.Failure
 import scala.util.Success
 
 object FileExample {
@@ -46,8 +47,9 @@ object FileExample {
     val encounter = new Encounter(history)
     logger.info(s"Encounter: ${encounter}");
     val runDone = encounter.run(actor, environment)
-    runDone onFailure {
-      case exception: Throwable =>
+    runDone onComplete {
+      case Success(_) => ()
+      case Failure(exception) =>
         exception.printStackTrace()
         logger.warn("Exception while running encounter", exception)
     }
@@ -58,7 +60,7 @@ object FileExample {
     if (logger.isDebugEnabled) {
       logger.info("Dump")
       logger.debug("Debug")
-      Dump.dump("", history.lastSnapshot._2).foreach {
+      Dump.dump("", history.lastSnapshot._1).foreach {
         line => logger.debug(line)
       }
     }
