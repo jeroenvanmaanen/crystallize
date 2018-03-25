@@ -6,12 +6,13 @@ import org.leialearns.crystallize.event._
 import org.leialearns.crystallize.event.History._
 import org.leialearns.crystallize.item.Item
 import org.leialearns.crystallize.model._
+import java.util.concurrent.atomic.AtomicReference
 
 class Snapshotter(_history: History) extends Logging {
   val history = _history
   val thread = new Thread((() => snapshotter()))
   thread.setDaemon(true)
-  val snapshotSemaphore = new Semaphore(0)
+  val semaphore = new Semaphore(0)
 
   def start() = {
     info("Start snapshotter thread")
@@ -23,8 +24,8 @@ class Snapshotter(_history: History) extends Logging {
     debug("Log level debug")
     do {
       Thread.sleep(10)
-      snapshotSemaphore.acquire();
-      while (snapshotSemaphore.tryAcquire()) {
+      semaphore.acquire();
+      while (semaphore.tryAcquire()) {
         // drop permit
       }
       createSnapshot()
@@ -43,9 +44,10 @@ class Snapshotter(_history: History) extends Logging {
       previousEvent = eventHandle
       val updater: Model => Model = eventHandle.event match {
         case StartEvent() => identity
-        case ObservedEvent(node, item) => applyObservedEvent(node, item)
-        case ExpectedNodeAddedEvent(node) => applyExpectedNodeChangedEvent(node, -1)
-        case ExpectedNodeRemovedEvent(node) => applyExpectedNodeChangedEvent(node, 1)
+        case ObservedEvent(node, item) => applyObservedEvent(eventHandle.ordinal, node, item)
+        case ExpectedNodeAddedEvent(node, referenceOrdinal) => applyExpectedNodeChangedEvent(referenceOrdinal, node, -1)
+        case ExpectedNodeRemovedEvent(node, referenceOrdinal) => applyExpectedNodeChangedEvent(referenceOrdinal, node, 1)
+        case ExpectedNodeVerifiedEvent(node, referenceOrdinal) => applyExpectedNodeChangedEvent(referenceOrdinal, node, 0)
       }
       model = updater(model)
     }
@@ -58,20 +60,20 @@ class Snapshotter(_history: History) extends Logging {
     }
   }
 
-  def applyObservedEvent(state: State, item: Item)(model: Model): Model = {
+  def applyObservedEvent(ordinal: Long, state: State, item: Item)(model: Model): Model = {
     var thisNodeValue: AbstractNodeValue = null
-    thisNodeValue = model.get(state).getOrElse(new NodeValue(ItemCounts.EMPTY))
+    thisNodeValue = getNodeValue(model, state).getOrElse(new NodeValue(ordinal, ItemCounts.EMPTY))
     val oldCounts = thisNodeValue.counts
     val newCounts = oldCounts.increment(item, 1)
     val newNodeValue = if (thisNodeValue.isInExpectedModel) {
-      new NodeValueInExpectedModel(newCounts)
+      new NodeValueInExpectedModel(ordinal, newCounts)
     } else {
-      new NodeValue(newCounts)
+      new NodeValue(ordinal, newCounts)
     }
-    var result = model + (state -> newNodeValue)
+    var result: Model = model + (state -> new AtomicReference(newNodeValue))
     if (!thisNodeValue.isInExpectedModel) {
       state.impliedStates().foreach {
-        impliedState => result = applyObservedEvent(impliedState, item)(result)
+        impliedState => result = applyObservedEvent(ordinal, impliedState, item)(result)
       }
     }
     if (!state.isExtensible()) {
@@ -93,31 +95,33 @@ class Snapshotter(_history: History) extends Logging {
     result
   }
 
-  def applyExpectedNodeChangedEvent(state: State, factor: Integer)(model: Model): Model = {
+  def applyExpectedNodeChangedEvent(ordinal: Long, state: State, factor: Integer)(model: Model): Model = {
     var result = model
-    model.get(state) map {
+    getNodeValue(model, state) map {
       expectedNodeValue => state.impliedStates().foreach {
-        impliedState => result = updateImpliedStates(impliedState, factor, expectedNodeValue)(model)
+        impliedState => result = updateImpliedStates(ordinal, impliedState, factor, expectedNodeValue)(model)
       }
     }
     result
   }
 
-  def updateImpliedStates(state: State, factor: Integer, expectedNodeValue: AbstractNodeValue)(model: Model): Model = {
-    val thisNodeValue = model.get(state).getOrElse(new NodeValue(ItemCounts.EMPTY))
+  def updateImpliedStates(ordinal: Long, state: State, factor: Integer, expectedNodeValue: AbstractNodeValue)(model: Model): Model = {
+    val thisNodeValue = getNodeValue(model, state).getOrElse(new NodeValue(ordinal, ItemCounts.EMPTY))
     var counts = thisNodeValue.counts
-    thisNodeValue.counts.map.foreach {
-      case (item, amount) => counts = counts.increment(item, factor * amount)
+    if (factor != 0) {
+      thisNodeValue.counts.map.foreach {
+        case (item, amount) => counts = counts.increment(item, factor * amount)
+      }
     }
     var result = model
     val newNodeValue = if (thisNodeValue.isInExpectedModel) {
-      new NodeValueInExpectedModel(counts)
+      new NodeValueInExpectedModel(ordinal, counts)
     } else {
       state.impliedStates().foreach {
-        impliedState => result = updateImpliedStates(impliedState, factor, expectedNodeValue)(result)
+        impliedState => result = updateImpliedStates(ordinal, impliedState, factor, expectedNodeValue)(result)
       }
-      new NodeValue(counts)
+      new NodeValue(ordinal, counts)
     }
-    result + (state -> newNodeValue)
+    result + (state -> new AtomicReference(newNodeValue))
   }
 }

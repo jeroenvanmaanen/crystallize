@@ -12,6 +12,7 @@ object Dump {
       case Some(item) => dump(prefix + "! ", item)
       case None => dump(prefix, "NONE")
       case map: Map[_,_] => dumpMap(prefix, map)
+      case set: Set[_] => dumpSet(prefix, set)
       case iterable: Iterable[_] => dumpIterable(prefix, iterable)
       case iterator: Iterator[_] => dumpIterator(prefix, "[[", "]]", iterator)
       case product: Product => dumpIterator(prefix, "(", ")", product.productIterator)
@@ -30,8 +31,12 @@ object Dump {
   }
 
   def dumpIterable[T](prefix: String, iterable: Iterable[T]): Iterator[String] = {
-    val sorted = iterable.toSeq sortBy sortProjection
-    dumpIterator(prefix, "[", "]", sorted.iterator)
+    dumpIterator(prefix, "[", "]", iterable.iterator)
+  }
+
+  def dumpSet[I](prefix: String, set: Set[I]): Iterator[String] = {
+    val sorted = set.toSeq sortBy sortProjection
+    dumpIterator(prefix, "{", "}", sorted.iterator)
   }
 
   def dumpMap[K,V](prefix: String, map: Map[K,V]): Iterator[String] = {

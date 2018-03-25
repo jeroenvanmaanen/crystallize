@@ -14,6 +14,7 @@ class Item private (_category: Category, _content: Any) extends Internalizable {
 }
 
 object Item {
+  def apply(category: Category, content: Any): Item = getItem(category, content)
   def getItem(category: Category, content: Any): Item = {
     Intern.internalize(new Item(category, content))
   }

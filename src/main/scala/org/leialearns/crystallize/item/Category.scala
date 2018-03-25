@@ -13,6 +13,7 @@ class Category private (_name: String) extends Internalizable {
 }
 
 object Category {
+  def apply(name: String): Category = getCategory(name)
   def getCategory(name: String): Category = {
     Intern.internalize(new Category(name))
   }

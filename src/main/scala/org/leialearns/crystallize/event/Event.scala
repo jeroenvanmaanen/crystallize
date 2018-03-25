@@ -12,6 +12,8 @@ case class ObservedEvent[State](_node: State, _item: Item) extends Event[State](
   val item = _item
 }
 
-case class ExpectedNodeAddedEvent[State](_node: State) extends Event[State]()
+case class ExpectedNodeAddedEvent[State](_node: State, _referenceOrdinal: Long) extends Event[State]()
 
-case class ExpectedNodeRemovedEvent[State](_node: State) extends Event[State]()
+case class ExpectedNodeRemovedEvent[State](_node: State, _referenceOrdinal: Long) extends Event[State]()
+
+case class ExpectedNodeVerifiedEvent[State](_node: State, _referenceOrdinal: Long) extends Event[State]()

@@ -36,4 +36,15 @@ object Rational {
   implicit object RationalIsFractional extends RationalIsFractional
   def apply(n: Long, d: Long): Rational = new Rational(n, d)
   def apply(n: Long): Rational = new Rational(n, 1)
+  def abs(r: Rational): Rational = {
+    if (r < ZERO) {
+      RationalIsFractional.negate(r)
+    } else {
+      r
+    }
+  }
+  val ZERO = Rational(0, 1)
+  val ONE = Rational(1, 1)
+  val TWO = Rational(2, 1)
+  val HALF = Rational(1, 2)
 }
