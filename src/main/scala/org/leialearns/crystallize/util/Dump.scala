@@ -1,9 +1,14 @@
 package org.leialearns.crystallize.util
 
+import java.lang.ref.Reference
+import java.util.concurrent.atomic.AtomicReference
+
 object Dump {
   def dump(prefix: String, thing: Any): Iterator[String] = {
     thing match {
       case custom: DumpCustom => dump(prefix, custom.dumpAs)
+      case reference: Reference[_] => dump(prefix, Option(reference.get))
+      case reference: AtomicReference[_] => dump(prefix, Option(reference.get))
       case Some(item) => dump(prefix + "! ", item)
       case None => dump(prefix, "NONE")
       case map: Map[_,_] => dumpMap(prefix, map)

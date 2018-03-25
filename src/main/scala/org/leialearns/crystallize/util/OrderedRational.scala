@@ -10,4 +10,7 @@ class OrderedRational(_r: Rational, _limit: Long, _ordinal: Long) extends Compar
   override def dumpAs: Iterable[_] = {
     Iterable(ordinal, limit, r)
   }
+  override def toString: String = {
+    s"{${r}<${limit}#${ordinal}}"
+  }
 }
