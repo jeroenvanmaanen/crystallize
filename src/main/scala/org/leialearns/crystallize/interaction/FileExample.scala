@@ -1,19 +1,18 @@
 package org.leialearns.crystallize.interaction
 
 import java.lang.invoke.MethodHandles
+
 import org.leialearns.crystallize.event.History
 import org.leialearns.crystallize.item.Category
 import org.leialearns.crystallize.reader.TokenSource
-import org.leialearns.crystallize.util.{Dump, LoggingConfiguration}
 import org.leialearns.crystallize.util.Oracle.oracle
+import org.leialearns.crystallize.util.{Dump, LoggingConfiguration}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Promise
-import scala.util.Failure
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 object FileExample {
-  val logger = (new Object with LoggingConfiguration).getLogger(MethodHandles.lookup().lookupClass())
+  private val logger = (new Object with LoggingConfiguration).getLogger(MethodHandles.lookup().lookupClass())
 
   def main(args: Array[String]): Unit = {
     logger.info("FileExample")
@@ -34,18 +33,18 @@ object FileExample {
     }
   }
 
-  def run(file: String, limit: Option[Long]) = {
-    logger.info("Run");
+  def run(file: String, limit: Option[Long]): Unit = {
+    logger.info("Run")
     val observation = Category.getCategory("observation")
     val environment = new TokenSource(observation, file)
-    logger.info(s"Environment: ${environment}");
+    logger.info(s"Environment: ${environment}")
     val actor = new NullActor(limit)
-    logger.info(s"Actor: ${actor}");
+    logger.info(s"Actor: ${actor}")
 
     val history = new History()
-    logger.info(s"History: ${history}");
+    logger.info(s"History: ${history}")
     val encounter = new Encounter(history)
-    logger.info(s"Encounter: ${encounter}");
+    logger.info(s"Encounter: ${encounter}")
     val runDone = encounter.run(actor, environment)
     runDone onComplete {
       case Success(_) => ()
