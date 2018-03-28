@@ -4,9 +4,7 @@ import org.leialearns.crystallize.util.{Intern, Internalizable, Sortable}
 import org.leialearns.crystallize.event.State
 import org.leialearns.crystallize.item.Node._
 
-class Node private (_parent: Option[Node], _item: Item) extends Sortable with Internalizable with State {
-  val parent = _parent
-  val item = _item
+class Node private (val parent: Option[Node], val item: Item) extends Sortable with Internalizable with State {
   var extensible = false
 
   def depth: Long = {
@@ -16,7 +14,7 @@ class Node private (_parent: Option[Node], _item: Item) extends Sortable with In
     }
   }
 
-  def equivalenceKey = (parent, item)
+  def equivalenceKey: (Option[Node], Item) = (parent, item)
 
   def toInnerString: String = {
     item.toString + (if (parent.isDefined) " > " + parent.get.toInnerString else "")

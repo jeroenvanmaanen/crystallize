@@ -2,9 +2,7 @@ package org.leialearns.crystallize.util
 
 import Rational._
 
-class Rational(_numerator: Long, _denominator: Long) extends Comparable[Rational] with DumpCustom {
-  val numerator = _numerator
-  val denominator = _denominator
+class Rational(val numerator: Long, val denominator: Long) extends Comparable[Rational] with DumpCustom {
   def +(rhs: Rational): Rational = RationalIsFractional.plus(this, rhs)
   def -(rhs: Rational): Rational = RationalIsFractional.minus(this, rhs)
   def *(rhs: Rational): Rational = RationalIsFractional.times(this, rhs)

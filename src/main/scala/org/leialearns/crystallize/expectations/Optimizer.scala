@@ -6,8 +6,7 @@ import org.leialearns.crystallize.event.History._
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
 
-class Optimizer(_history: History) extends Logging {
-  val history = _history
+class Optimizer(val history: History) extends Logging {
   val thread = new Thread((() => optimizer()))
   thread.setDaemon(true)
   private val eventQueue = new LinkedBlockingQueue[EventHandle[State]]()

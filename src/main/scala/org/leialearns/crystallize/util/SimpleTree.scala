@@ -4,10 +4,10 @@ import java.util.concurrent.atomic.AtomicReference
 import grizzled.slf4j.Logging
 import SimpleTree._
 
-class SimpleTree[A <: Comparable[A]](_value: A) extends DumpCustom with Logging {
-  private var left: AtomicReference[SimpleTree[A]] = new AtomicReference()
-  private var right: AtomicReference[SimpleTree[A]] = new AtomicReference()
-  val value = _value
+class SimpleTree[A <: Comparable[A]](val value: A) extends DumpCustom with Logging {
+  private val left: AtomicReference[SimpleTree[A]] = new AtomicReference()
+  private val right: AtomicReference[SimpleTree[A]] = new AtomicReference()
+
   def getBracket[B](item: B, comparator: (A,B) => Int, withinBounds: A => Boolean): (Option[A], Option[A]) = {
     if (withinBounds(value)) {
       val side = comparator(value, item)
@@ -24,6 +24,7 @@ class SimpleTree[A <: Comparable[A]](_value: A) extends DumpCustom with Logging 
       (None, None)
     }
   }
+
   def next[B](item: B, comparator: (A,B) => Int, withinBounds: A => Boolean): Option[A] = {
     if (withinBounds(value)) {
       val side = comparator(value, item)
@@ -40,6 +41,7 @@ class SimpleTree[A <: Comparable[A]](_value: A) extends DumpCustom with Logging 
       None
     }
   }
+
   def previous[B](item: B, comparator: (A,B) => Int, withinBounds: A => Boolean): Option[A] = {
     if (withinBounds(value)) {
       val side = comparator(value, item)
@@ -55,11 +57,13 @@ class SimpleTree[A <: Comparable[A]](_value: A) extends DumpCustom with Logging 
       None
     }
   }
+
   def add(item: A): Unit = {
     add(new SimpleTree[A](item))
   }
+
   def add(leaf: SimpleTree[A]): Unit = {
-    val side = value.compareTo(leaf.value);
+    val side = value.compareTo(leaf.value)
     trace(s"Compare: ${value} - ${side} - ${leaf.value}")
     if (side > 0) {
       trace(s"Add ${leaf.value} to the left of ${value}")
@@ -69,19 +73,24 @@ class SimpleTree[A <: Comparable[A]](_value: A) extends DumpCustom with Logging 
       addTo(right)(leaf)
     }
   }
+
   override def dumpAs: Iterable[_] = {
     Iterable(Option(left.get), value, Option(right.get))
   }
 }
+
 object SimpleTree {
+
   def getFromReference[A <: Comparable[A],B](reference: AtomicReference[SimpleTree[A]], f: (SimpleTree[A]) => B, default: B): B = {
     Option(reference.get).map(f).getOrElse(default)
   }
+
   def addTo[A <: Comparable[A]](reference: AtomicReference[SimpleTree[A]])(leaf: SimpleTree[A]): Unit = {
     if (!reference.compareAndSet(null, leaf)) {
       reference.get.add(leaf)
     }
   }
+
   def referenceToString[A <: Comparable[A]](reference: AtomicReference[SimpleTree[A]]): String = {
     Option(reference.get).map(_.value.toString).getOrElse("{}")
   }

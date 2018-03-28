@@ -2,20 +2,15 @@ package org.leialearns.crystallize.interaction
 
 import grizzled.slf4j.Logging
 import org.leialearns.crystallize.event.History
-import org.leialearns.crystallize.item.{Item, Node}
-import org.leialearns.crystallize.model.ItemCounts
+import org.leialearns.crystallize.item.Node
 import org.leialearns.crystallize.util.Marker
 
-import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
-class Encounter(_history: History) extends Logging {
+class Encounter(val history: History) extends Logging {
   info("Created encounter")
-
-  val history: History = _history
 
   def run(responder: Actor, environment: Actor): Future[Unit] = {
     info("About to run encounter")

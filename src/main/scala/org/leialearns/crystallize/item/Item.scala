@@ -2,11 +2,9 @@ package org.leialearns.crystallize.item
 
 import org.leialearns.crystallize.util.{Intern, Internalizable}
 
-class Item private (_category: Category, _content: Any) extends Internalizable {
-  val category = _category
-  val content = _content
+class Item private (val category: Category, val content: Any) extends Internalizable {
 
-  override def equivalenceKey = (category, content)
+  override def equivalenceKey: (Category, Any) = (category, content)
 
   override def toString: String = {
     "[I:" + category.name + ":" + content.toString + "]"

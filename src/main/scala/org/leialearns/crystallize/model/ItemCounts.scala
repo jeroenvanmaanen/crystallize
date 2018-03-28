@@ -6,12 +6,10 @@ import scala.collection.immutable
 
 import org.leialearns.crystallize.item.Item
 
-class ItemCounts(_map: immutable.Map[Item,Long], _total: Long) extends DumpCustom {
+class ItemCounts(val map: immutable.Map[Item,Long], val total: Long) extends DumpCustom {
   def this() = {
     this(new immutable.HashMap[Item,Long](), 0l)
   }
-  val map = _map
-  val total = _total
 
   def get(item: Item): Long = map.getOrElse(item, 0)
 

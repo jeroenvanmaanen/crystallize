@@ -8,8 +8,7 @@ import org.leialearns.crystallize.item.Item
 import org.leialearns.crystallize.model._
 import java.util.concurrent.atomic.AtomicReference
 
-class Snapshotter(_history: History) extends Logging {
-  val history = _history
+class Snapshotter(val history: History) extends Logging {
   val thread = new Thread((() => snapshotter()))
   thread.setDaemon(true)
   val semaphore = new Semaphore(0)

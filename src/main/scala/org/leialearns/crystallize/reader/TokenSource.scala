@@ -5,15 +5,13 @@ import org.leialearns.crystallize.item.{Category,Item}
 
 import scala.io.Source
 
-class TokenSource(_category: Category, _lines: Iterator[String]) extends Actor {
-  def this(_category: Category, _source: Source) {
-    this(_category, _source.getLines())
+class TokenSource(val category: Category, val lines: Iterator[String]) extends Actor {
+  def this(category: Category, source: Source) {
+    this(category, source.getLines())
   }
-  def this(_category: Category, _fileName: String) {
-    this(_category, Source.fromFile(_fileName, "UTF-8"))
+  def this(category: Category, fileName: String) {
+    this(category, Source.fromFile(fileName, "UTF-8"))
   }
-  val category = _category
-  val lines = _lines
   var tokens: Iterator[Item] = Nil.iterator
 
   override def provideItem(item: Item): Unit = {
