@@ -8,7 +8,7 @@ trait Actor {
 }
 
 object Actor {
-  val actions = Category.getCategory("actions")
-  val empty = Item.getItem(actions, "")
-  val stop = Item.getItem(actions, None)
+  val actions: Category = Category.getCategory("actions")
+  val empty: Item = Item.getItem(actions, "")
+  val stop: Item = Item.getItem(actions, None)
 }
