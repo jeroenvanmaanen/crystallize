@@ -61,7 +61,7 @@ class Snapshotter(val history: History) extends Logging {
 
   def applyObservedEvent(ordinal: Long, state: State, item: Item)(model: Model): Model = {
     var thisNodeValue: AbstractNodeValue = null
-    thisNodeValue = getNodeValue(model, state).getOrElse(default = NodeValue(ordinal, ItemCounts.EMPTY))
+    thisNodeValue = getNodeValue(model, state).getOrElse(default = NodeValue(ordinal, ItemCounts.empty))
     val oldCounts = thisNodeValue.counts
     val newCounts = oldCounts.increment(item, 1)
     val newNodeValue = if (thisNodeValue.isInExpectedModel) {
@@ -75,7 +75,7 @@ class Snapshotter(val history: History) extends Logging {
         impliedState => result = applyObservedEvent(ordinal, impliedState, item)(result)
       }
     }
-    if (!state.isExtensible()) {
+    if (!state.isExtensible) {
       var first = 0l
       var second = 0l
       newNodeValue.counts.map.values.foreach {
@@ -105,7 +105,7 @@ class Snapshotter(val history: History) extends Logging {
   }
 
   def updateImpliedStates(ordinal: Long, state: State, factor: Integer, expectedNodeValue: AbstractNodeValue)(model: Model): Model = {
-    val thisNodeValue = getNodeValue(model, state).getOrElse(NodeValue(ordinal, ItemCounts.EMPTY))
+    val thisNodeValue = getNodeValue(model, state).getOrElse(NodeValue(ordinal, ItemCounts.empty))
     var counts = thisNodeValue.counts
     if (factor != 0) {
       thisNodeValue.counts.map.foreach {

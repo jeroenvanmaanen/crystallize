@@ -22,7 +22,7 @@ class ItemCounts(val map: immutable.Map[Item,Long], val total: Long) extends Dum
     new ItemCounts(map + ((item, oldValue + amount)), total + amount)
   }
 
-  override def toString = {
+  override def toString: String = {
     s"[IC:${map.keySet.size}:$total]"
   }
 
@@ -33,5 +33,5 @@ class ItemCounts(val map: immutable.Map[Item,Long], val total: Long) extends Dum
   }
 }
 object ItemCounts {
-  val EMPTY = new ItemCounts(immutable.HashMap.empty, 0)
+  val empty = new ItemCounts(immutable.HashMap.empty, 0)
 }
