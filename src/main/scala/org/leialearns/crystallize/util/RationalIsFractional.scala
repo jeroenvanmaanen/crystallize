@@ -50,7 +50,7 @@ trait RationalIsFractional extends Fractional[Rational] {
     toLong(x).intValue
   }
   def toDouble(x: Rational): Double = {
-    return x.numerator.toDouble / x.denominator
+    x.numerator.toDouble / x.denominator
   }
   def toFloat(x: Rational): Float = {
     toDouble(x).toFloat
