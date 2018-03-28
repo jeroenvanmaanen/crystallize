@@ -7,18 +7,18 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
 
 class Optimizer(val history: History) extends Logging {
-  val thread = new Thread((() => optimizer()))
+  val thread = new Thread(() => optimizer())
   thread.setDaemon(true)
   private val eventQueue = new LinkedBlockingQueue[EventHandle[State]]()
-  private val queueSize = new AtomicLong(0l);
+  private val queueSize = new AtomicLong(0l)
 
-  def start() = {
+  def start(): Unit = {
     info("Start optimizer thread")
     thread.start()
   }
 
   def put(eventHandle: EventHandle[State]): Unit = {
-    val result = eventQueue.put(eventHandle)
+    eventQueue.put(eventHandle)
     queueSize.incrementAndGet()
   }
 
@@ -31,19 +31,19 @@ class Optimizer(val history: History) extends Logging {
     debug("Log level debug")
     do {
       consumeEvent()
-    } while(true);
+    } while(true)
   }
 
-  def consumeEvent() = {
+  def consumeEvent(): Unit = {
     val eventHandle = eventQueue.take()
     queueSize.decrementAndGet()
     eventHandle.event match {
       case ObservedEvent(node, item) =>
         val snapshot = history.lastSnapshot
         val current: Model = snapshot._1
-        if (getNodeValue(current, node) map { case value => value.updatedUpTo < eventHandle.ordinal } getOrElse(true)) {
+        if (getNodeValue(current, node) forall (_.updatedUpTo < eventHandle.ordinal)) {
           debug(s"Optimize: ${eventHandle.ordinal}: ${item}: ${node}")
-          val event = new ExpectedNodeVerifiedEvent(node, snapshot._2.ordinal)
+          val event = ExpectedNodeVerifiedEvent(node, snapshot._2.ordinal)
           history.addEvent(event)
           Thread.sleep(100)
         }
