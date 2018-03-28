@@ -24,26 +24,26 @@ class Node private (val parent: Option[Node], val item: Item) extends Sortable w
     "{" + toInnerString + "}"
   }
 
-  override def sortKey = {
+  override def sortKey: String = {
     (if (parent.isDefined) parent.get.sortKey + " < " else "") + item.toString
   }
 
-  override def impliedStates() = parent.iterator
+  override def impliedStates(): Iterator[Node] = parent.iterator
 
-  override def markExtensible() = {
+  override def markExtensible(): Unit = {
     extensible = true
   }
 
-  override def isExtensible() = extensible
+  override def isExtensible: Boolean = extensible
 
   def update(next: Item): Node = {
     val newParent = parent.map(p => p.update(next)).getOrElse(getNode(next))
-    val result = if (newParent.isExtensible()) {
+    val result = if (newParent.isExtensible) {
       getNode(newParent, item)
     } else {
       newParent
     }
-    if (result.isExtensible()) {
+    if (result.isExtensible) {
       markExtensible()
     }
     result
