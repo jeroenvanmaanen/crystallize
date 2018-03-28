@@ -32,7 +32,7 @@ class Snapshotter(val history: History) extends Logging {
   }
 
   def createSnapshot() {
-    val current = history.getCurrent()
+    val current = history.retrieveCurrentHistory()
     val previousSnapshot = current._1
     val previousModel = previousSnapshot._1
     val recentEvents = current._2
@@ -76,8 +76,8 @@ class Snapshotter(val history: History) extends Logging {
       }
     }
     if (!state.isExtensible()) {
-      var first = 0l;
-      var second = 0l;
+      var first = 0l
+      var second = 0l
       newNodeValue.counts.map.values.foreach {
         value =>
           if (value >= first) {

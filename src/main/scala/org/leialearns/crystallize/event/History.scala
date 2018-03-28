@@ -1,22 +1,20 @@
 package org.leialearns.crystallize.event
 
-import java.util.Map
+import java.util
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
 
-import scala.collection.immutable.HashMap
-
+import grizzled.slf4j.Logging
 import org.leialearns.crystallize.event.History._
+import org.leialearns.crystallize.expectations.Optimizer
 import org.leialearns.crystallize.item.Item
 import org.leialearns.crystallize.model.AbstractNodeValue
-import grizzled.slf4j.Logging
-import scala.collection.immutable.Queue
 import org.leialearns.crystallize.observations.Snapshotter
-import org.leialearns.crystallize.expectations.Optimizer
-import java.util.concurrent.atomic.AtomicReference
+
+import scala.collection.immutable.{HashMap, Queue}
 
 class History extends Logging {
-  val eventHandles: Map[Long,EventHandle[State]] = new ConcurrentHashMap[Long,EventHandle[State]]
+  val eventHandles: util.Map[Long,EventHandle[State]] = new ConcurrentHashMap[Long,EventHandle[State]]
   val startEventHandle = new EventHandle[State](0L, StartEvent())
   eventHandles.put(startEventHandle.ordinal, startEventHandle)
   var lastSnapshot: Snapshot = (HashMap.empty, startEventHandle)
@@ -52,7 +50,7 @@ class History extends Logging {
     eventHandle
   }
 
-  def getCurrent(): (Snapshot, Queue[EventHandle[State]]) = {
+  def retrieveCurrentHistory(): (Snapshot, Queue[EventHandle[State]]) = {
     val snapshot = lastSnapshot
     var currentEventHandles = Queue[EventHandle[State]]()
     var eventHandle = snapshot._2
@@ -62,7 +60,7 @@ class History extends Logging {
     do {
       newest = i
       i += 1
-      eventHandle = eventHandle.next.getOrElse(null)
+      eventHandle = eventHandle.next.orNull
       if (eventHandle == null) {
         eventHandle = eventHandles.get(i)
       }
@@ -79,6 +77,6 @@ object History {
   type Model = HashMap[State,AtomicReference[AbstractNodeValue]]
   type Snapshot = (Model, EventHandle[State])
   def getNodeValue(model: Model, state: State): Option[AbstractNodeValue] = {
-    model.get(state) flatMap { case reference => Option(reference.get) }
+    model.get(state) flatMap (reference => Option(reference.get))
   }
 }
