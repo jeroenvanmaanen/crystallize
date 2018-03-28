@@ -5,6 +5,7 @@ import org.scalatest.FunSuite
 import grizzled.slf4j.Logging
 import org.leialearns.crystallize.util.Rational._
 
+//noinspection NameBooleanParameters
 class TestSimpleTree extends FunSuite with LoggingConfiguration with Logging {
   private val testLimit = 300
 
@@ -34,7 +35,7 @@ class TestSimpleTree extends FunSuite with LoggingConfiguration with Logging {
             assert(left.r == r)
             assert(right.r == v)
           }
-          case _ => assert(condition = false)
+          case _ => assert(false)
         }
       }
       r = value.r
