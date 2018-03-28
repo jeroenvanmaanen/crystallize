@@ -1,9 +1,6 @@
 package org.leialearns.crystallize.util
 
-import java.io.InputStreamReader
-import java.io.BufferedReader
 import scala.io.Source
-import java.lang.invoke.MethodHandles
 import grizzled.slf4j.Logging
 
 object Oracle extends Logging {
@@ -18,7 +15,7 @@ object Oracle extends Logging {
     value.r.compareTo(item)
   }
 
-  def withinBounds(limit: Int)(value: OrderedRational) = value.limit < limit
+  def withinBounds(limit: Int)(value: OrderedRational): Boolean = value.limit < limit
 
   def getPrecomputed(resourcePath: String): Map[Long, OrderedRational] = {
     val specRe = "^[(]([0-9]*),([0-9]*) % ([0-9]*)[)]$".r
