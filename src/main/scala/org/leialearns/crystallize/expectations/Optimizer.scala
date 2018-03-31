@@ -7,6 +7,8 @@ import grizzled.slf4j.Logging
 import org.leialearns.crystallize.event.History._
 import org.leialearns.crystallize.event._
 import org.leialearns.crystallize.item.Item
+import org.leialearns.crystallize.model.AbstractNodeValue
+import org.leialearns.crystallize.util.Dump
 
 class Optimizer(val history: History) extends Logging {
   val thread = new Thread(() => optimizer())
@@ -43,17 +45,22 @@ class Optimizer(val history: History) extends Logging {
       case ObservedEvent(state, item) =>
         val snapshot = history.lastSnapshot
         val current: Model = snapshot._1
-        if (getNodeValue(current, state) forall (_.updatedUpTo < eventHandle.ordinal)) {
-          debug(s"Optimize: ${eventHandle.ordinal}: ${item}: ${state}")
-          val event = optimize(snapshot, eventHandle, state, item)
-          history.addEvent(event)
-          Thread.sleep(100)
-        }
+        getNodeValue(current, state)
+          .filter(_.updatedUpTo < eventHandle.ordinal)
+          .map(optimize(snapshot, eventHandle, state, item, _))
+          .map(history.addEvent)
       case _ => ()
     }
   }
 
-  def optimize(snapshot: Snapshot, eventHandle: EventHandle[State], state: State, item: Item): Event[State] = {
+  def optimize(snapshot: Snapshot, eventHandle: EventHandle[State], state: State, item: Item, nodeValue: AbstractNodeValue): Event[State] = {
+    val counts = nodeValue.counts
+    debug(s"Optimize: ${eventHandle.ordinal}: ${item}: ${state}: ${counts.total}")
+    val expected = ItemCountsOptimizer.optimize(counts)
+    if (isDebugEnabled) {
+      Dump.dump("Expected", expected) foreach (debug(_))
+    }
+    Thread.sleep(100)
     ExpectedNodeVerifiedEvent(state, snapshot._2.ordinal)
   }
 }

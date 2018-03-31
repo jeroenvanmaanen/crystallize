@@ -15,7 +15,7 @@ object Oracle extends Logging {
     value.r.compareTo(item)
   }
 
-  def withinBounds(limit: Int)(value: OrderedRational): Boolean = value.limit < limit
+  def withinBounds(limit: Long)(value: OrderedRational): Boolean = value.limit < limit
 
   def getPrecomputed(resourcePath: String): Map[Long, OrderedRational] = {
     val specRe = "^[(]([0-9]*),([0-9]*) % ([0-9]*)[)]$".r

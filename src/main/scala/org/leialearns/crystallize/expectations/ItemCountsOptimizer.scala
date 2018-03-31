@@ -1,6 +1,5 @@
 package org.leialearns.crystallize.expectations
 
-import org.leialearns.crystallize.item.Item
 import org.leialearns.crystallize.model.ItemCounts
 import org.leialearns.crystallize.util.Dump
 import org.leialearns.crystallize.util.Oracle
@@ -8,6 +7,7 @@ import org.leialearns.crystallize.util.OrderedRational
 import org.leialearns.crystallize.util.Rational
 import org.leialearns.crystallize.util.Rational._
 import grizzled.slf4j.Logging
+import org.leialearns.crystallize.item.Item
 
 object ItemCountsOptimizer extends Logging {
   def optimize(itemCounts: ItemCounts): Map[Item,(Rational,Long)] = {
@@ -28,7 +28,11 @@ object ItemCountsOptimizer extends Logging {
     if (isTraceEnabled) {
       Dump.dump("Approximated", approximated).foreach(trace(_))
     }
-    val result = differences(approximated).toMap
+    val distinct = spread(approximated, total)
+    if (isTraceEnabled) {
+      Dump.dump("Distinct", distinct).foreach(trace(_))
+    }
+    val result: Map[Item,(Rational,Long)] = distinct.map(differences).getOrElse(uniform(itemCounts.map.keySet)).toMap
     if (isTraceEnabled) {
       Dump.dump("Result", result).foreach(trace(_))
     }
@@ -52,15 +56,38 @@ object ItemCountsOptimizer extends Logging {
     }
   }
 
+  def spread[K](approximated: List[(K,OrderedRational)], limit: Long): Option[List[(K,OrderedRational)]] = {
+    val oracle = Oracle.oracle
+    val proceed: Rational => Option[OrderedRational] = r => oracle.next(r, Oracle.comparator, Oracle.withinBounds(limit))
+    val start: Option[(List[(K,OrderedRational)],Rational)] = Some((Nil, ZERO))
+    val result = approximated.foldRight(start) {
+      case ((key, bound), Some((done, last))) =>
+        proceed(last)
+          .map(next => {
+            val adjusted = if (next.r > bound.r) next else bound
+            ((key, adjusted) :: done, adjusted.r)
+          })
+      case (_, None) => None
+    }
+    result.map(_._1)
+  }
+
   def differences[K](approximated: List[(K,OrderedRational)]): List[(K,(Rational,Long))] = {
     approximated match {
       case Nil => Nil
       case head :: tail =>
         val differences = tail.foldLeft((Nil: List[(K,(Rational, Long))], head)) {
-          case ((done, last), (key, bound)) => ((last._1, (last._2.r - bound.r, last._2.ordinal)) :: done, (key, bound))
+          case ((done, last), (key, bound)) => {
+            ((last._1, (last._2.r - bound.r, last._2.ordinal)) :: done, (key, bound))
+          }
         }
         (differences._2._1, (differences._2._2.r, differences._2._2.ordinal)) :: differences._1
     }
+  }
+
+  def uniform(keySet: Set[Item]): List[(Item,(Rational,Long))] = {
+    val denominator = keySet.size.longValue
+    (for (i <- keySet) yield (i, (Rational(1, denominator), 0L))).toList
   }
 
   def closest(r: Rational, bracket: (Option[OrderedRational], Option[OrderedRational])): OrderedRational = {
@@ -74,9 +101,6 @@ object ItemCountsOptimizer extends Logging {
   }
 
   def distance(r: Rational, b: Option[OrderedRational]): Rational = {
-    b match {
-      case Some(bound) => abs(r - bound.r)
-      case None => ONE
-    }
+    b.map(bound => abs(r - bound.r)).getOrElse(ONE)
   }
 }

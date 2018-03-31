@@ -11,3 +11,6 @@ class OrderedRational(val r: Rational, val limit: Long, val ordinal: Long) exten
     s"{${r}<${limit}#${ordinal}}"
   }
 }
+object OrderedRational {
+  def apply(r: Rational, limit: Long, ordinal: Long): OrderedRational = new OrderedRational(r, limit, ordinal)
+}
