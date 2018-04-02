@@ -21,8 +21,8 @@ class TestItemCountsOptimizer extends FunSuite with LoggingConfiguration with Lo
   test("Uniform") {
     val number = Category("number")
     val map = (for (i <- 1 to 100) yield (Item(number, s"#${i}"), 1L)).toMap
-    val optimized = optimize(map)
-    optimized.values.foreach {
+    val probabilities = optimize(map)
+    probabilities.map.values.foreach {
       case (r, n) =>
         assert(r == Rational(1, 100))
         assert(n == 0L)
@@ -30,7 +30,8 @@ class TestItemCountsOptimizer extends FunSuite with LoggingConfiguration with Lo
   }
 
   def testMap(map: Map[Item,Long]): Unit = {
-    val optimized = optimize(map)
+    val probabilities = optimize(map)
+    val optimized = probabilities.map
     optimized.toStream.map(e => assert(e._2._1 > ZERO))
     val sum = optimized.foldLeft(ZERO)(_ + _._2._1)
     assert(sum == ONE)
@@ -51,7 +52,7 @@ class TestItemCountsOptimizer extends FunSuite with LoggingConfiguration with Lo
     assert(blueBound.r == optimized(blue)._1)
   }
 
-  def optimize(map: Map[Item,Long]): Map[Item, (Rational, Long)] = {
+  def optimize(map: Map[Item,Long]): Probabilities = {
     val total = map.foldLeft(0L)(_ + _._2)
     val itemCounts = new ItemCounts(map, total)
     Dump.dump("Item counts", itemCounts.map).foreach(debug(_))

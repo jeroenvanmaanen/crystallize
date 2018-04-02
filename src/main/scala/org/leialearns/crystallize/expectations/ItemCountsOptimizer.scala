@@ -1,16 +1,13 @@
 package org.leialearns.crystallize.expectations
 
-import org.leialearns.crystallize.model.ItemCounts
-import org.leialearns.crystallize.util.Dump
-import org.leialearns.crystallize.util.Oracle
-import org.leialearns.crystallize.util.OrderedRational
-import org.leialearns.crystallize.util.Rational
-import org.leialearns.crystallize.util.Rational._
 import grizzled.slf4j.Logging
 import org.leialearns.crystallize.item.Item
+import org.leialearns.crystallize.model.ItemCounts
+import org.leialearns.crystallize.util.{Dump, Oracle, OrderedRational, Rational}
+import org.leialearns.crystallize.util.Rational._
 
 object ItemCountsOptimizer extends Logging {
-  def optimize(itemCounts: ItemCounts): Map[Item,(Rational,Long)] = {
+  def optimize(itemCounts: ItemCounts): Probabilities = {
     val (accumulated, total) = accumulate(itemCounts.map.toSeq)
     if (isTraceEnabled) {
       trace(s"Total: ${total}")
@@ -36,7 +33,7 @@ object ItemCountsOptimizer extends Logging {
     if (isTraceEnabled) {
       Dump.dump("Result", result).foreach(trace(_))
     }
-    result
+    new Probabilities(result)
   }
 
   def accumulate[K](entries: Seq[(K,Long)]): (List[(K,Long)], Long) = {

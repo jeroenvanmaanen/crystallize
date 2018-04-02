@@ -139,6 +139,7 @@ class PrefixFreeIntegral[T](implicit val num: Integral[T]) extends Logging {
 object PrefixFreeIntegral {
   object Implicits {
     implicit object IntIsPrefixFree extends PrefixFreeIntegral[Int]
+    implicit object LongIsPrefixFree extends PrefixFreeIntegral[Long]
     implicit object BigIntIsPrefixFree extends PrefixFreeIntegral[BigInt]
   }
 }
