@@ -15,3 +15,7 @@ case object ONE extends Bit {
   def asBoolean = true
   def asChar = 'I'
 }
+
+object Bit {
+  def apply(b: Boolean): Bit = if (b) ONE else ZERO
+}

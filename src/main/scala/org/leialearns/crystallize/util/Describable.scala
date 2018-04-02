@@ -47,4 +47,11 @@ object Describable {
       override def descriptionLength: Long = prefixFree.descriptionLength(n)
     }
   }
+
+  implicit def booleanToDescribable(b: Boolean): Describable = {
+    new Describable {
+      override def description: String = Bit(b).asChar.toString
+      override def descriptionLength: Long = 1
+    }
+  }
 }
