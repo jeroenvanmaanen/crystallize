@@ -4,6 +4,7 @@ import java.io.{IOException, StringReader}
 
 import grizzled.slf4j.Logging
 import org.scalatest.FunSuite
+import PrefixFreeIntegral.Implicits._
 
 import scala.util.control.Breaks
 
@@ -39,16 +40,13 @@ class TestPrefixFreeIntegral extends FunSuite with Logging {
 
   test("Composition of prefixDecode and prefixEncode should be the identity function") {
     for (i <- 0 to 40) {
-      singlePrefixEncode(i)(IntIsPrefixFree)
+      singlePrefixEncode(i)
     }
     for (i <- 1 to 16) {
       val n = BigInt.int2bigInt(2).pow(i) - 1
       val m = n - 1
-      singlePrefixEncode(m)(BigIntIsPrefixFree)
-      singlePrefixEncode(n)(BigIntIsPrefixFree)
+      singlePrefixEncode(m)
+      singlePrefixEncode(n)
     }
   }
-
-  implicit object IntIsPrefixFree extends PrefixFreeIntegral[Int]
-  implicit object BigIntIsPrefixFree extends PrefixFreeIntegral[BigInt]
 }
