@@ -58,9 +58,7 @@ class TestItemCountsOptimizer extends FunSuite with LoggingConfiguration with Lo
     Dump.dump("Item counts", itemCounts.map).foreach(debug(_))
     val optimized = ItemCountsOptimizer.optimize(itemCounts)
     Dump.dump("Optimized", optimized).foreach(debug(_))
-    debug(s"Description: ${optimized.description}")
     assert(optimized.description == expectedDescription)
-    debug(s"Description length: ${optimized.descriptionLength}")
     val expectedDescriptionLength = expectedDescription.replaceAll(raw"[^IO]", "").length
     assert(optimized.descriptionLength == expectedDescriptionLength)
     optimized
