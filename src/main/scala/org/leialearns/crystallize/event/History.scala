@@ -45,6 +45,7 @@ class History extends Logging {
 
   def addEvent(event: Event[State]): EventHandle[State] = {
     val ordinal = newest.incrementAndGet()
+    debug(s"Add event: ${event.getClass.getSimpleName}: ${event.state} (#${ordinal})")
     val eventHandle = new EventHandle(ordinal, event)
     eventHandles.put(ordinal, eventHandle)
     eventHandle

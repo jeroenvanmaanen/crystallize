@@ -22,6 +22,20 @@ class ItemCounts(val map: immutable.Map[Item,Long], val total: Long) extends Dum
     new ItemCounts(map + ((item, oldValue + amount)), total + amount)
   }
 
+  def plus(other: ItemCounts): ItemCounts = {
+    val newMap = other.map.foldLeft(this) {
+      case (counts, (item, amount)) => counts.increment(item, amount)
+    }
+    ItemCounts(newMap)
+  }
+
+  def minus(other: ItemCounts): ItemCounts = {
+    val newMap = other.map.foldLeft(this) {
+      case (counts, (item, amount)) => counts.increment(item, -amount)
+    }
+    ItemCounts(newMap)
+  }
+
   override def toString: String = {
     s"[IC:${map.keySet.size}:$total]"
   }
